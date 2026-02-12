@@ -1,10 +1,8 @@
 import { Hono } from 'hono'
-import { requireAuth } from '../lib/auth-middleware'
+import { requireAuth } from '../features/auth/middleware'
+import { loginBodySchema, refreshBodySchema, registerBodySchema } from '../features/auth/schemas'
 import { createRateLimitMiddleware } from '../lib/rate-limit'
-import { loginBodySchema, refreshBodySchema, registerBodySchema } from '../lib/schemas/auth'
 import { validate } from '../lib/validation'
-import { createUserRepositoryFromEnv } from '../repositories/user-repository-factory'
-import { createAuthService } from '../services/auth-service'
 import type { AppEnv } from '../types/env'
 
 export const authRoutes = new Hono<AppEnv>()
@@ -28,8 +26,7 @@ authRoutes.use(
 )
 
 authRoutes.post('/auth/register', validate('json', registerBodySchema), async (c) => {
-  const userRepository = createUserRepositoryFromEnv(c.env)
-  const authService = createAuthService(userRepository, c.env.JWT_SECRET)
+  const authService = c.get('authService')
   const input = c.req.valid('json')
   const result = await authService.register(input)
 
@@ -37,8 +34,7 @@ authRoutes.post('/auth/register', validate('json', registerBodySchema), async (c
 })
 
 authRoutes.post('/auth/login', validate('json', loginBodySchema), async (c) => {
-  const userRepository = createUserRepositoryFromEnv(c.env)
-  const authService = createAuthService(userRepository, c.env.JWT_SECRET)
+  const authService = c.get('authService')
   const input = c.req.valid('json')
   const result = await authService.login(input)
 
@@ -46,8 +42,7 @@ authRoutes.post('/auth/login', validate('json', loginBodySchema), async (c) => {
 })
 
 authRoutes.post('/auth/refresh', validate('json', refreshBodySchema), async (c) => {
-  const userRepository = createUserRepositoryFromEnv(c.env)
-  const authService = createAuthService(userRepository, c.env.JWT_SECRET)
+  const authService = c.get('authService')
   const { refreshToken } = c.req.valid('json')
   const result = await authService.refresh(refreshToken)
 
@@ -55,8 +50,7 @@ authRoutes.post('/auth/refresh', validate('json', refreshBodySchema), async (c) 
 })
 
 authRoutes.post('/auth/logout', validate('json', refreshBodySchema), async (c) => {
-  const userRepository = createUserRepositoryFromEnv(c.env)
-  const authService = createAuthService(userRepository, c.env.JWT_SECRET)
+  const authService = c.get('authService')
   const { refreshToken } = c.req.valid('json')
   await authService.logout(refreshToken)
 

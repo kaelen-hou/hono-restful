@@ -1,12 +1,12 @@
 import { eq, sql } from 'drizzle-orm'
-import { createDb } from '../db/client'
-import { refreshSessionsTable, usersTable } from '../db/schema'
-import type { RefreshSessionRow, UserRow } from '../types/user'
+import { createDb } from '../../../db/client'
+import { refreshSessionsTable, usersTable } from '../../../db/schema'
 import type {
   CreateRefreshSessionInput,
   CreateUserRecordInput,
   UserRepository,
-} from './user-repository'
+} from '../../../repositories/user-repository'
+import type { RefreshSessionRow, UserRow } from '../../../types/user'
 
 const toUserRow = (row: typeof usersTable.$inferSelect): UserRow => ({
   id: row.id,

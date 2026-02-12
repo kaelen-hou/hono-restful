@@ -1,15 +1,15 @@
 import type { SQL } from 'drizzle-orm'
 import { and, desc, eq, sql } from 'drizzle-orm'
-import { createDb } from '../db/client'
-import { todosTable } from '../db/schema'
+import { createDb } from '../../../db/client'
+import { todosTable } from '../../../db/schema'
+import type { TodoListRows, TodoRepository } from '../../../repositories/todo-repository'
 import type {
   CreateTodoInput,
   ListTodosQuery,
   PatchTodoInput,
   PutTodoInput,
   TodoRow,
-} from '../types/todo'
-import type { TodoListRows, TodoRepository } from './todo-repository'
+} from '../../../types/todo'
 
 const toTodoRow = (row: typeof todosTable.$inferSelect): TodoRow => ({
   id: row.id,

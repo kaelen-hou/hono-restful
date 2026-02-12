@@ -158,33 +158,41 @@ curl -X POST http://127.0.0.1:8787/auth/logout \
 ```text
 src/
   app.ts                         # 应用装配、日志与统一错误处理
+  app/
+    services.ts                  # Composition Root：集中创建 request-scoped services
   index.ts                       # Workers 入口
+  infrastructure/
+    persistence/
+      memory-store.ts            # memory 驱动状态存储（仅开发/测试）
+      todo/
+        d1-repository.ts         # todo 仓储 D1 实现
+        memory-repository.ts     # todo 仓储 Memory 实现
+        repository-factory.ts    # todo 仓储实现选择
+      user/
+        d1-repository.ts         # user 仓储 D1 实现
+        memory-repository.ts     # user 仓储 Memory 实现
+        repository-factory.ts    # user 仓储实现选择
+  features/
+    auth/
+      token.ts                   # JWT 签发与校验
+      middleware.ts              # 鉴权中间件
+      schemas.ts                 # auth 请求 schema
   lib/
     errors.ts                    # 统一业务错误模型（status/code/message）
     validation.ts                # zod 校验中间件封装
-    auth.ts                      # JWT 签发与校验
-    auth-middleware.ts           # 鉴权中间件
     password.ts                  # 密码 hash/verify
     schemas/
-      auth.ts                    # auth 请求 schema
       todo.ts                    # 请求参数 schema
   repositories/
     user-repository.ts           # 用户仓库接口
-    user-repository-d1.ts        # 用户 D1 实现
-    user-repository-memory.ts    # 用户 Memory 实现
-    user-repository-factory.ts   # 用户仓库工厂
-    memory-store.ts              # Memory 共享存储
     todo-repository.ts           # 仓库接口
-    todo-repository-d1.ts        # Drizzle + D1 实现
-    todo-repository-memory.ts    # Memory 实现
-    todo-repository-factory.ts   # 根据环境选择实现
   db/
     client.ts                    # Drizzle D1 client
     schema.ts                    # Drizzle schema
   routes/
-    auth-routes.ts               # /auth 路由
-    system-routes.ts             # / /health /ready
-    todo-routes.ts               # /todos REST 路由
+    auth-routes.ts               # /auth 路由（仅做 HTTP 映射）
+    system-routes.ts             # / /health /ready（仅做 HTTP 映射）
+    todo-routes.ts               # /todos REST 路由（仅做 HTTP 映射）
   services/
     auth-service.ts              # 认证业务
     todo-service.ts              # 业务逻辑层

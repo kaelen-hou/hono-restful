@@ -1,6 +1,6 @@
 import { Jwt } from 'hono/utils/jwt'
-import type { AuthTokens, AuthUser } from '../types/user'
-import { ApiError } from './errors'
+import { ApiError } from '../../lib/errors'
+import type { AuthTokens, AuthUser } from '../../types/user'
 
 const ACCESS_EXPIRES_IN_SECONDS = 60 * 15
 const REFRESH_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30

@@ -4,7 +4,7 @@ import {
   extractBearerToken,
   verifyAccessToken,
   verifyRefreshToken,
-} from '../../src/lib/auth'
+} from '../../src/features/auth/token'
 import { ApiError } from '../../src/lib/errors'
 
 describe('auth utils', () => {

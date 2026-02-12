@@ -5,8 +5,8 @@ vi.mock('../../src/db/client', () => ({
 }))
 
 import { createDb } from '../../src/db/client'
-import { createD1TodoRepository } from '../../src/repositories/todo-repository-d1'
-import { createD1UserRepository } from '../../src/repositories/user-repository-d1'
+import { createD1TodoRepository } from '../../src/infrastructure/persistence/todo/d1-repository'
+import { createD1UserRepository } from '../../src/infrastructure/persistence/user/d1-repository'
 
 const mockedCreateDb = vi.mocked(createDb)
 

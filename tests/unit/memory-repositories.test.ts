@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { resetMemoryDbStore } from '../../src/repositories/memory-store'
-import { createMemoryTodoRepository } from '../../src/repositories/todo-repository-memory'
-import { createMemoryUserRepository } from '../../src/repositories/user-repository-memory'
+import { resetMemoryDbStore } from '../../src/infrastructure/persistence/memory-store'
+import { createMemoryTodoRepository } from '../../src/infrastructure/persistence/todo/memory-repository'
+import { createMemoryUserRepository } from '../../src/infrastructure/persistence/user/memory-repository'
 
 describe('memory todo repository', () => {
   beforeEach(() => {

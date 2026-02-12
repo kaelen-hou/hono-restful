@@ -1,8 +1,8 @@
-import { ApiError } from '../lib/errors'
-import type { Bindings } from '../types/env'
-import type { UserRepository } from './user-repository'
-import { createD1UserRepository } from './user-repository-d1'
-import { createMemoryUserRepository } from './user-repository-memory'
+import { ApiError } from '../../../lib/errors'
+import type { UserRepository } from '../../../repositories/user-repository'
+import type { Bindings } from '../../../types/env'
+import { createD1UserRepository } from './d1-repository'
+import { createMemoryUserRepository } from './memory-repository'
 
 const isProductionLike = (env?: string): boolean => env === 'production' || env === 'staging'
 

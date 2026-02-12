@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { createTodoRepositoryFromEnv } from '../../src/infrastructure/persistence/todo/repository-factory'
+import { createUserRepositoryFromEnv } from '../../src/infrastructure/persistence/user/repository-factory'
 import { ApiError } from '../../src/lib/errors'
-import { createTodoRepositoryFromEnv } from '../../src/repositories/todo-repository-factory'
-import { createUserRepositoryFromEnv } from '../../src/repositories/user-repository-factory'
 
 describe('repository factories', () => {
   it('should return memory repositories in development', () => {

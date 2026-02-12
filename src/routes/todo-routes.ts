@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { requireAuth } from '../lib/auth-middleware'
+import { requireAuth } from '../features/auth/middleware'
 import {
   createTodoBodySchema,
   listTodosQuerySchema,
@@ -8,20 +8,12 @@ import {
   todoIdParamSchema,
 } from '../lib/schemas/todo'
 import { validate } from '../lib/validation'
-import { createTodoRepositoryFromEnv } from '../repositories/todo-repository-factory'
-import { createTodoService } from '../services/todo-service'
 import type { AppEnv } from '../types/env'
 import type { PatchTodoInput } from '../types/todo'
 
 export const todoRoutes = new Hono<AppEnv>()
 
 todoRoutes.use('*', requireAuth)
-
-todoRoutes.use('*', async (c, next) => {
-  const repository = createTodoRepositoryFromEnv(c.env)
-  c.set('todoService', createTodoService(repository))
-  await next()
-})
 
 todoRoutes.get('/todos', validate('query', listTodosQuerySchema), async (c) => {
   const service = c.get('todoService')

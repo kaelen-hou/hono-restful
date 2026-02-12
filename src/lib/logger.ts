@@ -20,7 +20,7 @@ const toSerializableError = (err: unknown): SerializableError => {
     return {
       name: err.name,
       message: err.message,
-      stack: err.stack,
+      ...(err.stack ? { stack: err.stack } : {}),
     }
   }
 

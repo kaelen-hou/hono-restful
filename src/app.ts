@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { createRequestServices } from './app/services'
 import { ApiError } from './lib/errors'
 import { logError, logInfo } from './lib/logger'
 import { recordHttpMetric } from './lib/metrics'
@@ -39,15 +40,24 @@ export const createApp = () => {
       durationMs,
     })
 
-    recordHttpMetric({
+    const metricContext = {
       requestId,
       method: c.req.method,
       path,
       status: c.res.status,
       durationMs,
-      errorCode,
-      userId: c.var.currentUser?.id,
-    })
+      ...(errorCode ? { errorCode } : {}),
+      ...(c.var.currentUser ? { userId: c.var.currentUser.id } : {}),
+    }
+
+    recordHttpMetric(metricContext)
+  })
+
+  app.use('*', async (c, next) => {
+    const services = createRequestServices(c.env)
+    c.set('authService', services.authService)
+    c.set('todoService', services.todoService)
+    await next()
   })
 
   app.get('/openapi.json', (c) => c.json(createOpenApiDocument(c.req.url)))

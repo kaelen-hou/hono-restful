@@ -1,4 +1,4 @@
-import { createTokenPair, verifyRefreshToken } from '../lib/auth'
+import { createTokenPair, verifyRefreshToken } from '../features/auth/token'
 import { ApiError } from '../lib/errors'
 import { logAudit } from '../lib/logger'
 import { hashPassword, verifyPassword } from '../lib/password'
@@ -176,3 +176,5 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
     logout,
   }
 }
+
+export type AuthService = ReturnType<typeof createAuthService>

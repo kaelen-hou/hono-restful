@@ -1,12 +1,12 @@
+import type { TodoListRows, TodoRepository } from '../../../repositories/todo-repository'
 import type {
   CreateTodoInput,
   ListTodosQuery,
   PatchTodoInput,
   PutTodoInput,
   TodoRow,
-} from '../types/todo'
-import { getMemoryDbStore } from './memory-store'
-import type { TodoListRows, TodoRepository } from './todo-repository'
+} from '../../../types/todo'
+import { getMemoryDbStore } from '../memory-store'
 
 const now = () => new Date().toISOString()
 

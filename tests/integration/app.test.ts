@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createApp } from '../../src/app'
+import { resetMemoryDbStore } from '../../src/infrastructure/persistence/memory-store'
 import { resetRateLimitStore } from '../../src/lib/rate-limit'
-import { resetMemoryDbStore } from '../../src/repositories/memory-store'
 
 const devEnv = {
   DB_DRIVER: 'memory' as const,

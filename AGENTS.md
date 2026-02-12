@@ -9,6 +9,12 @@
 ## 2. Development Workflow
 
 - Start local dev with `npm run dev`.
+- Mandatory quality gate for every code change (before commit and before handoff):
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm test`
+- Preferred one-liner for the mandatory gate:
+  - `npm run typecheck && npm run lint && npm test`
 - Before opening PR or merging, run:
   - `npm run lint`
   - `npm run typecheck`

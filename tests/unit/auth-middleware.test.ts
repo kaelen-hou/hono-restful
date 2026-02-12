@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { describe, expect, it } from 'vitest'
-import { requireAdmin } from '../../src/lib/auth-middleware'
+import { requireAdmin } from '../../src/features/auth/middleware'
 import type { AppEnv } from '../../src/types/env'
 
 const env = {
