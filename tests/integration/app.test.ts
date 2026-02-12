@@ -131,6 +131,41 @@ describe('app integration', () => {
     expect(body.items.length).toBe(1)
   })
 
+  it('should support list todos with explicit userId query', async () => {
+    const app = createApp()
+    const { accessToken } = await registerAndGetTokens(app)
+
+    await app.request(
+      '/todos',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ title: 'task-explicit-user' }),
+      },
+      devEnv,
+    )
+
+    const meRes = await app.request(
+      '/auth/me',
+      { headers: { authorization: `Bearer ${accessToken}` } },
+      devEnv,
+    )
+    expect(meRes.status).toBe(200)
+    const meBody = (await meRes.json()) as { user: { id: number } }
+
+    const res = await app.request(
+      `/todos?limit=10&offset=0&userId=${meBody.user.id}`,
+      { headers: { authorization: `Bearer ${accessToken}` } },
+      devEnv,
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { items: Array<{ title: string }> }
+    expect(body.items.some((item) => item.title === 'task-explicit-user')).toBe(true)
+  })
+
   it('should rotate refresh token', async () => {
     const app = createApp()
     const { refreshToken } = await registerAndGetTokens(app)

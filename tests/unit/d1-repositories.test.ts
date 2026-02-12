@@ -82,6 +82,19 @@ describe('d1 todo repository', () => {
     expect(row?.user_id).toBe(7)
   })
 
+  it('should return null when todo is not found', async () => {
+    const limit = vi.fn().mockResolvedValue([])
+    const where = vi.fn(() => ({ limit }))
+    const from = vi.fn(() => ({ where }))
+    const select = vi.fn().mockReturnValue({ from })
+
+    mockedCreateDb.mockReturnValue({ select } as never)
+    const repository = createD1TodoRepository({} as D1Database)
+    const row = await repository.findById(999, 7)
+
+    expect(row).toBeNull()
+  })
+
   it('should create row and return id', async () => {
     const returning = vi.fn().mockResolvedValue([{ id: 9 }])
     const values = vi.fn(() => ({ returning }))
@@ -92,6 +105,18 @@ describe('d1 todo repository', () => {
     const id = await repository.create({ title: 'new', completed: true }, 5)
 
     expect(id).toBe(9)
+  })
+
+  it('should return null when create returning is empty', async () => {
+    const returning = vi.fn().mockResolvedValue([])
+    const values = vi.fn(() => ({ returning }))
+    const insert = vi.fn(() => ({ values }))
+
+    mockedCreateDb.mockReturnValue({ insert } as never)
+    const repository = createD1TodoRepository({} as D1Database)
+    const id = await repository.create({ title: 'new', completed: false }, 5)
+
+    expect(id).toBeNull()
   })
 
   it('should return 0 when update input is empty', async () => {
@@ -117,9 +142,11 @@ describe('d1 todo repository', () => {
     const repository = createD1TodoRepository({} as D1Database)
 
     const updateChanges = await repository.update(1, { completed: true }, 1)
+    const updateTitleChanges = await repository.update(1, { title: 'renamed', completed: false }, 1)
     const removeChanges = await repository.remove(1, 1)
 
     expect(updateChanges).toBe(1)
+    expect(updateTitleChanges).toBe(1)
     expect(removeChanges).toBe(2)
   })
 
@@ -184,6 +211,19 @@ describe('d1 user repository', () => {
     expect(byEmail?.role).toBe('admin')
   })
 
+  it('should return null when user is not found', async () => {
+    const limit = vi.fn().mockResolvedValue([])
+    const where = vi.fn(() => ({ limit }))
+    const from = vi.fn(() => ({ where }))
+    const select = vi.fn().mockReturnValue({ from })
+
+    mockedCreateDb.mockReturnValue({ select } as never)
+    const repository = createD1UserRepository({} as D1Database)
+
+    const byId = await repository.findById(999)
+    expect(byId).toBeNull()
+  })
+
   it('should create user with normalized email', async () => {
     const returning = vi.fn().mockResolvedValue([{ id: 11 }])
     const values = vi.fn(() => ({ returning }))
@@ -204,6 +244,23 @@ describe('d1 user repository', () => {
         email: 'user@example.com',
       }),
     )
+  })
+
+  it('should return null when create user returning is empty', async () => {
+    const returning = vi.fn().mockResolvedValue([])
+    const values = vi.fn(() => ({ returning }))
+    const insert = vi.fn(() => ({ values }))
+
+    mockedCreateDb.mockReturnValue({ insert } as never)
+    const repository = createD1UserRepository({} as D1Database)
+
+    const id = await repository.create({
+      email: 'user@example.com',
+      passwordHash: 'hash',
+      role: 'user',
+    })
+
+    expect(id).toBeNull()
   })
 
   it('should create find and revoke refresh session', async () => {
@@ -243,5 +300,18 @@ describe('d1 user repository', () => {
     expect(session?.jti).toBe('jti-1')
     expect(session?.user_id).toBe(3)
     expect(revokeWhere).toHaveBeenCalled()
+  })
+
+  it('should return null when refresh session is not found', async () => {
+    const sessionLimit = vi.fn().mockResolvedValue([])
+    const sessionWhere = vi.fn(() => ({ limit: sessionLimit }))
+    const sessionFrom = vi.fn(() => ({ where: sessionWhere }))
+    const select = vi.fn().mockReturnValue({ from: sessionFrom })
+
+    mockedCreateDb.mockReturnValue({ select } as never)
+    const repository = createD1UserRepository({} as D1Database)
+
+    const session = await repository.findRefreshSessionByJti('missing')
+    expect(session).toBeNull()
   })
 })
