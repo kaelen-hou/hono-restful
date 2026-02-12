@@ -12,7 +12,7 @@ import type { AppEnv } from '../types/env'
 
 export const todoRoutes = new Hono<AppEnv>()
 
-todoRoutes.use('/todos*', async (c, next) => {
+todoRoutes.use('*', async (c, next) => {
   const repository = createTodoRepositoryFromEnv(c.env)
   c.set('todoService', createTodoService(repository))
   await next()
