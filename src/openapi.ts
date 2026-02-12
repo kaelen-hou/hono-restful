@@ -1,3 +1,5 @@
+import { API_PREFIX } from '@/constants/api'
+
 type OpenApiDocument = {
   openapi: '3.1.0'
   info: {
@@ -123,7 +125,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
       schemas,
     },
     paths: {
-      '/': {
+      [API_PREFIX]: {
         get: {
           tags: ['system'],
           summary: 'Service metadata',
@@ -134,7 +136,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           },
         },
       },
-      '/health': {
+      [`${API_PREFIX}/health`]: {
         get: {
           tags: ['system'],
           summary: 'Health check',
@@ -145,7 +147,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           },
         },
       },
-      '/ready': {
+      [`${API_PREFIX}/ready`]: {
         get: pathItemWithError({
           tags: ['system'],
           summary: 'Readiness check',
@@ -156,7 +158,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           },
         }),
       },
-      '/auth/register': {
+      [`${API_PREFIX}/auth/register`]: {
         post: pathItemWithError({
           tags: ['auth'],
           summary: 'Register user',
@@ -204,7 +206,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           },
         }),
       },
-      '/auth/login': {
+      [`${API_PREFIX}/auth/login`]: {
         post: pathItemWithError({
           tags: ['auth'],
           summary: 'Login',
@@ -244,7 +246,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           },
         }),
       },
-      '/auth/refresh': {
+      [`${API_PREFIX}/auth/refresh`]: {
         post: pathItemWithError({
           tags: ['auth'],
           summary: 'Refresh token pair',
@@ -272,7 +274,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           },
         }),
       },
-      '/auth/logout': {
+      [`${API_PREFIX}/auth/logout`]: {
         post: pathItemWithError({
           tags: ['auth'],
           summary: 'Revoke refresh token',
@@ -293,7 +295,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           },
         }),
       },
-      '/auth/me': {
+      [`${API_PREFIX}/auth/me`]: {
         get: pathItemWithError({
           tags: ['auth'],
           summary: 'Current user',
@@ -314,7 +316,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           },
         }),
       },
-      '/todos': {
+      [`${API_PREFIX}/todos`]: {
         get: pathItemWithError({
           tags: ['todo'],
           summary: 'List todos',
@@ -341,7 +343,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           },
         }),
       },
-      '/todos/{id}': {
+      [`${API_PREFIX}/todos/{id}`]: {
         get: pathItemWithError({
           tags: ['todo'],
           summary: 'Get todo by id',

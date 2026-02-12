@@ -63,31 +63,31 @@ npm run deploy
 
 ## API 路由
 
-- `GET /` 服务状态
-- `GET /health` liveness（进程存活）
-- `GET /ready` readiness（检查依赖可用）
-- `POST /auth/register` 邮箱+密码注册
-- `POST /auth/login` 邮箱+密码登录
-- `POST /auth/refresh` 使用 refresh token 刷新双 token
-- `POST /auth/logout` 撤销 refresh token
-- `GET /auth/me` 获取当前登录用户
-- `GET /todos?limit=20&offset=0` 获取分页 to-do（需登录）
-- `GET /todos/:id` 获取单个 to-do（需登录）
-- `POST /todos` 创建 to-do（需登录）
-- `PUT /todos/:id` 全量替换（需登录）
-- `PATCH /todos/:id` 部分更新（需登录）
-- `DELETE /todos/:id` 删除 to-do（需登录）
+- `GET /api/v1` 服务状态
+- `GET /api/v1/health` liveness（进程存活）
+- `GET /api/v1/ready` readiness（检查依赖可用）
+- `POST /api/v1/auth/register` 邮箱+密码注册
+- `POST /api/v1/auth/login` 邮箱+密码登录
+- `POST /api/v1/auth/refresh` 使用 refresh token 刷新双 token
+- `POST /api/v1/auth/logout` 撤销 refresh token
+- `GET /api/v1/auth/me` 获取当前登录用户
+- `GET /api/v1/todos?limit=20&offset=0` 获取分页 to-do（需登录）
+- `GET /api/v1/todos/:id` 获取单个 to-do（需登录）
+- `POST /api/v1/todos` 创建 to-do（需登录）
+- `PUT /api/v1/todos/:id` 全量替换（需登录）
+- `PATCH /api/v1/todos/:id` 部分更新（需登录）
+- `DELETE /api/v1/todos/:id` 删除 to-do（需登录）
 
-所有 `/todos` 路由都需要 `Authorization: Bearer <token>`。
-普通用户只能访问自己的 todo，`admin` 可访问全部（并可通过 `GET /todos?userId=...` 指定用户）。
-`/auth/login` 与 `/auth/refresh` 启用了基础限流，超限会返回 `429 TOO_MANY_REQUESTS`。
+所有 `/api/v1/todos` 路由都需要 `Authorization: Bearer <token>`。
+普通用户只能访问自己的 todo，`admin` 可访问全部（并可通过 `GET /api/v1/todos?userId=...` 指定用户）。
+`/api/v1/auth/login` 与 `/api/v1/auth/refresh` 启用了基础限流，超限会返回 `429 TOO_MANY_REQUESTS`。
 
 ## 认证示例
 
 注册：
 
 ```bash
-curl -X POST http://127.0.0.1:8787/auth/register \
+curl -X POST http://127.0.0.1:8787/api/v1/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"email":"demo@example.com","password":"Password123!"}'
 ```
@@ -95,7 +95,7 @@ curl -X POST http://127.0.0.1:8787/auth/register \
 登录：
 
 ```bash
-curl -X POST http://127.0.0.1:8787/auth/login \
+curl -X POST http://127.0.0.1:8787/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"demo@example.com","password":"Password123!"}'
 ```
@@ -103,7 +103,7 @@ curl -X POST http://127.0.0.1:8787/auth/login \
 刷新 token：
 
 ```bash
-curl -X POST http://127.0.0.1:8787/auth/refresh \
+curl -X POST http://127.0.0.1:8787/api/v1/auth/refresh \
   -H 'Content-Type: application/json' \
   -d '{"refreshToken":"<refresh_token>"}'
 ```
@@ -111,14 +111,14 @@ curl -X POST http://127.0.0.1:8787/auth/refresh \
 退出登录（撤销 refresh token）：
 
 ```bash
-curl -X POST http://127.0.0.1:8787/auth/logout \
+curl -X POST http://127.0.0.1:8787/api/v1/auth/logout \
   -H 'Content-Type: application/json' \
   -d '{"refreshToken":"<refresh_token>"}'
 ```
 
 ## 响应格式
 
-`GET /todos` 返回：
+`GET /api/v1/todos` 返回：
 
 ```json
 {
@@ -147,7 +147,7 @@ curl -X POST http://127.0.0.1:8787/auth/logout \
 - 所有请求会输出结构化指标事件（`metric_http_request`）
 - 每个响应包含 `x-request-id`
 - `memory` 驱动在 `staging/production` 环境会被禁止，避免误配置
-- `GET /todos` 强制分页与最大限制（limit 最大 100）
+- `GET /api/v1/todos` 强制分页与最大限制（limit 最大 100）
 
 可观测性字段与告警建议见：
 

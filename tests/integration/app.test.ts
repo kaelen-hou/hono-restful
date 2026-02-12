@@ -20,7 +20,7 @@ const registerUser = async (
   password = 'Password123!',
 ) => {
   return app.request(
-    '/auth/register',
+    '/api/v1/auth/register',
     {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -47,7 +47,7 @@ describe('app integration', () => {
 
   it('should return request id header', async () => {
     const app = createApp()
-    const res = await app.request('/health', {}, devEnv)
+    const res = await app.request('/api/v1/health', {}, devEnv)
 
     expect(res.status).toBe(200)
     expect(res.headers.get('x-request-id')).toBeTruthy()
@@ -55,7 +55,7 @@ describe('app integration', () => {
 
   it('should return service info on root route', async () => {
     const app = createApp()
-    const res = await app.request('/', {}, devEnv)
+    const res = await app.request('/api/v1', {}, devEnv)
 
     expect(res.status).toBe(200)
     const body = (await res.json()) as { service: string; status: string }
@@ -65,28 +65,28 @@ describe('app integration', () => {
 
   it('should expose openapi json', async () => {
     const app = createApp()
-    const res = await app.request('/openapi.json', {}, devEnv)
+    const res = await app.request('/api/v1/openapi.json', {}, devEnv)
 
     expect(res.status).toBe(200)
     const body = (await res.json()) as { openapi: string; paths: Record<string, unknown> }
     expect(body.openapi).toBe('3.1.0')
-    expect(body.paths['/auth/register']).toBeTruthy()
-    expect(body.paths['/todos']).toBeTruthy()
+    expect(body.paths['/api/v1/auth/register']).toBeTruthy()
+    expect(body.paths['/api/v1/todos']).toBeTruthy()
   })
 
   it('should serve api docs page', async () => {
     const app = createApp()
-    const res = await app.request('/docs', {}, devEnv)
+    const res = await app.request('/api/v1/docs', {}, devEnv)
 
     expect(res.status).toBe(200)
     const html = await res.text()
     expect(html.includes('redoc')).toBe(true)
-    expect(html.includes('/openapi.json')).toBe(true)
+    expect(html.includes('/api/v1/openapi.json')).toBe(true)
   })
 
   it('should reject protected route without token', async () => {
     const app = createApp()
-    const res = await app.request('/todos', {}, devEnv)
+    const res = await app.request('/api/v1/todos', {}, devEnv)
 
     expect(res.status).toBe(401)
     const body = (await res.json()) as { code: string }
@@ -98,7 +98,7 @@ describe('app integration', () => {
     const { accessToken } = await registerAndGetTokens(app)
 
     const res = await app.request(
-      '/todos/1',
+      '/api/v1/todos/1',
       {
         method: 'PUT',
         headers: {
@@ -122,7 +122,7 @@ describe('app integration', () => {
     const { accessToken } = await registerAndGetTokens(app)
 
     await app.request(
-      '/todos',
+      '/api/v1/todos',
       {
         method: 'POST',
         headers: {
@@ -135,7 +135,7 @@ describe('app integration', () => {
     )
 
     const res = await app.request(
-      '/todos?limit=1&offset=0',
+      '/api/v1/todos?limit=1&offset=0',
       {
         headers: { authorization: `Bearer ${accessToken}` },
       },
@@ -159,7 +159,7 @@ describe('app integration', () => {
     const { accessToken } = await registerAndGetTokens(app)
 
     await app.request(
-      '/todos',
+      '/api/v1/todos',
       {
         method: 'POST',
         headers: {
@@ -172,7 +172,7 @@ describe('app integration', () => {
     )
 
     const meRes = await app.request(
-      '/auth/me',
+      '/api/v1/auth/me',
       { headers: { authorization: `Bearer ${accessToken}` } },
       devEnv,
     )
@@ -180,7 +180,7 @@ describe('app integration', () => {
     const meBody = (await meRes.json()) as { user: { id: number } }
 
     const res = await app.request(
-      `/todos?limit=10&offset=0&userId=${meBody.user.id}`,
+      `/api/v1/todos?limit=10&offset=0&userId=${meBody.user.id}`,
       { headers: { authorization: `Bearer ${accessToken}` } },
       devEnv,
     )
@@ -194,7 +194,7 @@ describe('app integration', () => {
     const { refreshToken } = await registerAndGetTokens(app)
 
     const refreshRes = await app.request(
-      '/auth/refresh',
+      '/api/v1/auth/refresh',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -210,7 +210,7 @@ describe('app integration', () => {
     expect(refreshed.refreshToken).not.toBe(refreshToken)
 
     const oldRefreshRes = await app.request(
-      '/auth/refresh',
+      '/api/v1/auth/refresh',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -225,7 +225,7 @@ describe('app integration', () => {
   it('ready should fail when memory driver used in production', async () => {
     const app = createApp()
     const res = await app.request(
-      '/ready',
+      '/api/v1/ready',
       {},
       { DB_DRIVER: 'memory', APP_ENV: 'production', JWT_SECRET: 'test-secret' },
     )
@@ -237,7 +237,7 @@ describe('app integration', () => {
 
   it('ready should pass in development memory mode', async () => {
     const app = createApp()
-    const res = await app.request('/ready', {}, devEnv)
+    const res = await app.request('/api/v1/ready', {}, devEnv)
 
     expect(res.status).toBe(200)
     const body = (await res.json()) as { status: string; driver: string }
@@ -249,7 +249,7 @@ describe('app integration', () => {
     const app = createApp()
     const { accessToken } = await registerAndGetTokens(app)
     const res = await app.request(
-      '/missing-route',
+      '/api/v1/missing-route',
       { headers: { authorization: `Bearer ${accessToken}` } },
       devEnv,
     )
@@ -265,7 +265,7 @@ describe('app integration', () => {
     await registerUser(app, email)
 
     const loginRes = await app.request(
-      '/auth/login',
+      '/api/v1/auth/login',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -277,7 +277,7 @@ describe('app integration', () => {
     const loginBody = (await loginRes.json()) as AuthPayload
 
     const meRes = await app.request(
-      '/auth/me',
+      '/api/v1/auth/me',
       { headers: { authorization: `Bearer ${loginBody.accessToken}` } },
       devEnv,
     )
@@ -286,7 +286,7 @@ describe('app integration', () => {
     expect(meBody.user.email).toBe(email)
 
     const logoutRes = await app.request(
-      '/auth/logout',
+      '/api/v1/auth/logout',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -297,7 +297,7 @@ describe('app integration', () => {
     expect(logoutRes.status).toBe(204)
 
     const refreshAfterLogout = await app.request(
-      '/auth/refresh',
+      '/api/v1/auth/refresh',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -314,7 +314,7 @@ describe('app integration', () => {
     await registerUser(app, email)
 
     const loginRes = await app.request(
-      '/auth/login',
+      '/api/v1/auth/login',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -340,7 +340,7 @@ describe('app integration', () => {
 
     for (let i = 0; i < 5; i += 1) {
       const res = await app.request(
-        '/auth/login',
+        '/api/v1/auth/login',
         {
           method: 'POST',
           headers,
@@ -352,7 +352,7 @@ describe('app integration', () => {
     }
 
     const limited = await app.request(
-      '/auth/login',
+      '/api/v1/auth/login',
       {
         method: 'POST',
         headers,
@@ -376,7 +376,7 @@ describe('app integration', () => {
     }
 
     const createRes = await app.request(
-      '/todos',
+      '/api/v1/todos',
       {
         method: 'POST',
         headers,
@@ -388,11 +388,11 @@ describe('app integration', () => {
     const created = (await createRes.json()) as { id: number; completed: boolean }
     expect(created.completed).toBe(false)
 
-    const getRes = await app.request(`/todos/${created.id}`, { headers }, devEnv)
+    const getRes = await app.request(`/api/v1/todos/${created.id}`, { headers }, devEnv)
     expect(getRes.status).toBe(200)
 
     const patchRes = await app.request(
-      `/todos/${created.id}`,
+      `/api/v1/todos/${created.id}`,
       {
         method: 'PATCH',
         headers,
@@ -406,7 +406,7 @@ describe('app integration', () => {
     expect(patched.completed).toBe(true)
 
     const putRes = await app.request(
-      `/todos/${created.id}`,
+      `/api/v1/todos/${created.id}`,
       {
         method: 'PUT',
         headers,
@@ -420,13 +420,13 @@ describe('app integration', () => {
     expect(replaced.completed).toBe(false)
 
     const deleteRes = await app.request(
-      `/todos/${created.id}`,
+      `/api/v1/todos/${created.id}`,
       { method: 'DELETE', headers },
       devEnv,
     )
     expect(deleteRes.status).toBe(204)
 
-    const getDeletedRes = await app.request(`/todos/${created.id}`, { headers }, devEnv)
+    const getDeletedRes = await app.request(`/api/v1/todos/${created.id}`, { headers }, devEnv)
     expect(getDeletedRes.status).toBe(404)
   })
 })

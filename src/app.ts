@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { createRequestServices } from './app/services'
+import { API_PREFIX } from './constants/api'
 import { ApiError } from './lib/errors'
 import { logError, logInfo } from './lib/logger'
 import { recordHttpMetric } from './lib/metrics'
@@ -60,11 +61,11 @@ export const createApp = () => {
     await next()
   })
 
-  app.get('/openapi.json', (c) => c.json(createOpenApiDocument(c.req.url)))
-  app.get('/docs', (c) => c.html(createDocsHtml('/openapi.json')))
-  app.route('/', systemRoutes)
-  app.route('/', authRoutes)
-  app.route('/', todoRoutes)
+  app.get(`${API_PREFIX}/openapi.json`, (c) => c.json(createOpenApiDocument(c.req.url)))
+  app.get(`${API_PREFIX}/docs`, (c) => c.html(createDocsHtml(`${API_PREFIX}/openapi.json`)))
+  app.route(API_PREFIX, systemRoutes)
+  app.route(API_PREFIX, authRoutes)
+  app.route(API_PREFIX, todoRoutes)
 
   app.notFound((c) =>
     c.json(
