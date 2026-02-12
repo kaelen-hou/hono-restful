@@ -1,6 +1,9 @@
 name = "hono-restful"
 main = "src/index.ts"
 compatibility_date = "2026-02-12"
+routes = [
+  { pattern = "todo.w3ctech.dev", custom_domain = true, zone_name = "w3ctech.dev" }
+]
 
 [[d1_databases]]
 binding = "DB"

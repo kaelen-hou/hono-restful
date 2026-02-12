@@ -53,6 +53,7 @@ npm run deploy
 ## API 路由
 
 - `GET /` 健康检查
+- `GET /health` 健康检查（含时间戳）
 - `GET /todos` 获取全部 to-do
 - `GET /todos/:id` 获取单个 to-do
 - `POST /todos` 创建 to-do

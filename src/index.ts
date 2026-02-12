@@ -32,6 +32,8 @@ const mapTodo = (row: TodoRow): Todo => ({
 
 app.get('/', (c) => c.json({ service: 'todo-api', status: 'ok' }))
 
+app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }))
+
 app.get('/todos', async (c) => {
   const { results } = await c.env.DB.prepare(
     'SELECT id, title, completed, created_at, updated_at FROM todos ORDER BY id DESC',
