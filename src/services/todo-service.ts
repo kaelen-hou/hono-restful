@@ -108,3 +108,5 @@ export const createTodoService = (repository: TodoRepository) => {
     checkReady,
   }
 }
+
+export type TodoService = ReturnType<typeof createTodoService>
