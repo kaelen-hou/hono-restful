@@ -61,6 +61,27 @@ describe('app integration', () => {
     expect(body.status).toBe('ok')
   })
 
+  it('should expose openapi json', async () => {
+    const app = createApp()
+    const res = await app.request('/openapi.json', {}, devEnv)
+
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { openapi: string; paths: Record<string, unknown> }
+    expect(body.openapi).toBe('3.1.0')
+    expect(body.paths['/auth/register']).toBeTruthy()
+    expect(body.paths['/todos']).toBeTruthy()
+  })
+
+  it('should serve api docs page', async () => {
+    const app = createApp()
+    const res = await app.request('/docs', {}, devEnv)
+
+    expect(res.status).toBe(200)
+    const html = await res.text()
+    expect(html.includes('redoc')).toBe(true)
+    expect(html.includes('/openapi.json')).toBe(true)
+  })
+
   it('should reject protected route without token', async () => {
     const app = createApp()
     const res = await app.request('/todos', {}, devEnv)

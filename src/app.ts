@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { ApiError } from './lib/errors'
+import { createDocsHtml, createOpenApiDocument } from './openapi'
 import { authRoutes } from './routes/auth-routes'
 import { systemRoutes } from './routes/system-routes'
 import { todoRoutes } from './routes/todo-routes'
@@ -31,6 +32,8 @@ export const createApp = () => {
     )
   })
 
+  app.get('/openapi.json', (c) => c.json(createOpenApiDocument(c.req.url)))
+  app.get('/docs', (c) => c.html(createDocsHtml('/openapi.json')))
   app.route('/', systemRoutes)
   app.route('/', authRoutes)
   app.route('/', todoRoutes)
