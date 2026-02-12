@@ -71,16 +71,12 @@ export const createApp = () => {
     const requestId = c.get('requestId')
 
     if (err instanceof ApiError) {
-      logError(
-        'api_error',
-        {
-          requestId,
-          code: err.code,
-          status: err.status,
-          message: err.message,
-        },
-        err,
-      )
+      logError('api_error', {
+        requestId,
+        code: err.code,
+        status: err.status,
+        message: err.message,
+      })
 
       return c.json(
         {

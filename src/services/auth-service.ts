@@ -1,5 +1,6 @@
 import { createTokenPair, verifyRefreshToken } from '../lib/auth'
 import { ApiError } from '../lib/errors'
+import { logAudit } from '../lib/logger'
 import { hashPassword, verifyPassword } from '../lib/password'
 import type { UserRepository } from '../repositories/user-repository'
 import type { AuthTokens, LoginInput, RegisterInput, User, UserRow } from '../types/user'
@@ -13,6 +14,17 @@ const toUser = (row: UserRow): User => ({
 })
 
 const isExpired = (expiresAtIso: string): boolean => new Date(expiresAtIso).getTime() <= Date.now()
+
+const toMaskedEmail = (email: string): string => {
+  const normalized = email.trim().toLowerCase()
+  const [local = '', domain = ''] = normalized.split('@')
+  if (!domain) {
+    return '***'
+  }
+
+  const prefix = local.slice(0, 2)
+  return `${prefix}***@${domain}`
+}
 
 export const createAuthService = (userRepository: UserRepository, jwtSecret?: string) => {
   const issueTokenPair = async (user: UserRow): Promise<AuthTokens> => {
@@ -38,8 +50,12 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
   }
 
   const register = async (input: RegisterInput): Promise<AuthTokens & { user: User }> => {
+    const maskedEmail = toMaskedEmail(input.email)
     const existing = await userRepository.findByEmail(input.email)
     if (existing) {
+      logAudit('auth_register_conflict', {
+        email: maskedEmail,
+      })
       throw new ApiError(409, 'CONFLICT', 'email already exists')
     }
 
@@ -60,44 +76,97 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
     }
 
     const tokens = await issueTokenPair(created)
+    logAudit('auth_register_success', {
+      userId: created.id,
+      email: toMaskedEmail(created.email),
+      role: created.role,
+    })
     return { ...tokens, user: toUser(created) }
   }
 
   const login = async (input: LoginInput): Promise<AuthTokens & { user: User }> => {
+    const maskedEmail = toMaskedEmail(input.email)
     const user = await userRepository.findByEmail(input.email)
     if (!user) {
+      logAudit('auth_login_failed', {
+        email: maskedEmail,
+        reason: 'user_not_found',
+      })
       throw new ApiError(401, 'UNAUTHORIZED', 'invalid credentials')
     }
 
     const ok = await verifyPassword(input.password, user.password_hash)
     if (!ok) {
+      logAudit('auth_login_failed', {
+        email: maskedEmail,
+        reason: 'bad_password',
+      })
       throw new ApiError(401, 'UNAUTHORIZED', 'invalid credentials')
     }
 
     const tokens = await issueTokenPair(user)
+    logAudit('auth_login_success', {
+      userId: user.id,
+      email: toMaskedEmail(user.email),
+      role: user.role,
+    })
     return { ...tokens, user: toUser(user) }
   }
 
   const refresh = async (refreshToken: string): Promise<AuthTokens> => {
-    const payload = await verifyRefreshToken(refreshToken, jwtSecret)
+    let payload: Awaited<ReturnType<typeof verifyRefreshToken>>
+    try {
+      payload = await verifyRefreshToken(refreshToken, jwtSecret)
+    } catch {
+      logAudit('auth_refresh_failed', {
+        reason: 'token_verification_failed',
+      })
+      throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
+    }
+
     const session = await userRepository.findRefreshSessionByJti(payload.jti)
 
     if (!session || session.revoked_at || isExpired(session.expires_at)) {
+      logAudit('auth_refresh_failed', {
+        userId: payload.id,
+        reason: 'session_invalid',
+      })
       throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
     }
 
     const user = await userRepository.findById(payload.id)
     if (!user) {
+      logAudit('auth_refresh_failed', {
+        userId: payload.id,
+        reason: 'user_not_found',
+      })
       throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
     }
 
     await userRepository.revokeRefreshSession(payload.jti)
-    return issueTokenPair(user)
+    const tokens = await issueTokenPair(user)
+    logAudit('auth_refresh_success', {
+      userId: user.id,
+      email: toMaskedEmail(user.email),
+    })
+    return tokens
   }
 
   const logout = async (refreshToken: string): Promise<void> => {
-    const payload = await verifyRefreshToken(refreshToken, jwtSecret)
+    let payload: Awaited<ReturnType<typeof verifyRefreshToken>>
+    try {
+      payload = await verifyRefreshToken(refreshToken, jwtSecret)
+    } catch {
+      logAudit('auth_logout_failed', {
+        reason: 'token_verification_failed',
+      })
+      throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
+    }
+
     await userRepository.revokeRefreshSession(payload.jti)
+    logAudit('auth_logout_success', {
+      userId: payload.id,
+    })
   }
 
   return {
