@@ -1,4 +1,10 @@
-import type { CreateTodoInput, ListTodosQuery, PatchTodoInput, PutTodoInput, TodoRow } from '../types/todo'
+import type {
+  CreateTodoInput,
+  ListTodosQuery,
+  PatchTodoInput,
+  PutTodoInput,
+  TodoRow,
+} from '../types/todo'
 
 export type TodoListRows = {
   items: TodoRow[]

@@ -1,4 +1,10 @@
-import type { CreateTodoInput, ListTodosQuery, PatchTodoInput, PutTodoInput, TodoRow } from '../types/todo'
+import type {
+  CreateTodoInput,
+  ListTodosQuery,
+  PatchTodoInput,
+  PutTodoInput,
+  TodoRow,
+} from '../types/todo'
 import type { TodoListRows, TodoRepository } from './todo-repository'
 
 export type MemoryStore = {
@@ -13,7 +19,9 @@ export const createMemoryStore = (): MemoryStore => ({
 
 const now = () => new Date().toISOString()
 
-export const createMemoryTodoRepository = (store: MemoryStore = createMemoryStore()): TodoRepository => {
+export const createMemoryTodoRepository = (
+  store: MemoryStore = createMemoryStore(),
+): TodoRepository => {
   const list = async (query: ListTodosQuery): Promise<TodoListRows> => {
     const sorted = [...store.rows].sort((a, b) => b.id - a.id)
     const items = sorted.slice(query.offset, query.offset + query.limit)

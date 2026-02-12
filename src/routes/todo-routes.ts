@@ -41,28 +41,38 @@ todoRoutes.post('/todos', validate('json', createTodoBodySchema), async (c) => {
   return c.json(todo, 201)
 })
 
-todoRoutes.put('/todos/:id', validate('param', todoIdParamSchema), validate('json', putTodoBodySchema), async (c) => {
-  const service = c.get('todoService')
-  const { id } = c.req.valid('param')
-  const input = c.req.valid('json')
-  const todo = await service.replaceTodo(id, input)
-  return c.json(todo)
-})
+todoRoutes.put(
+  '/todos/:id',
+  validate('param', todoIdParamSchema),
+  validate('json', putTodoBodySchema),
+  async (c) => {
+    const service = c.get('todoService')
+    const { id } = c.req.valid('param')
+    const input = c.req.valid('json')
+    const todo = await service.replaceTodo(id, input)
+    return c.json(todo)
+  },
+)
 
-todoRoutes.patch('/todos/:id', validate('param', todoIdParamSchema), validate('json', patchTodoBodySchema), async (c) => {
-  const service = c.get('todoService')
-  const { id } = c.req.valid('param')
-  const rawInput = c.req.valid('json')
-  const input: PatchTodoInput = {}
-  if (rawInput.title !== undefined) {
-    input.title = rawInput.title
-  }
-  if (rawInput.completed !== undefined) {
-    input.completed = rawInput.completed
-  }
-  const todo = await service.patchTodo(id, input)
-  return c.json(todo)
-})
+todoRoutes.patch(
+  '/todos/:id',
+  validate('param', todoIdParamSchema),
+  validate('json', patchTodoBodySchema),
+  async (c) => {
+    const service = c.get('todoService')
+    const { id } = c.req.valid('param')
+    const rawInput = c.req.valid('json')
+    const input: PatchTodoInput = {}
+    if (rawInput.title !== undefined) {
+      input.title = rawInput.title
+    }
+    if (rawInput.completed !== undefined) {
+      input.completed = rawInput.completed
+    }
+    const todo = await service.patchTodo(id, input)
+    return c.json(todo)
+  },
+)
 
 todoRoutes.delete('/todos/:id', validate('param', todoIdParamSchema), async (c) => {
   const service = c.get('todoService')

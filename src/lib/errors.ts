@@ -1,10 +1,6 @@
 export type ApiErrorStatus = 400 | 404 | 500 | 503
 
-export type ApiErrorCode =
-  | 'BAD_REQUEST'
-  | 'NOT_FOUND'
-  | 'CONFIG_ERROR'
-  | 'INTERNAL_ERROR'
+export type ApiErrorCode = 'BAD_REQUEST' | 'NOT_FOUND' | 'CONFIG_ERROR' | 'INTERNAL_ERROR'
 
 export class ApiError extends Error {
   status: ApiErrorStatus

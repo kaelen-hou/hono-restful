@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '../../src/lib/errors'
-import { createTodoService } from '../../src/services/todo-service'
 import type { TodoRepository } from '../../src/repositories/todo-repository'
+import { createTodoService } from '../../src/services/todo-service'
 
 const createRepositoryStub = (): TodoRepository => ({
   list: async () => ({
