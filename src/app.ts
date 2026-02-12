@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { ApiError } from './lib/errors'
+import { logError, logInfo } from './lib/logger'
 import { createDocsHtml, createOpenApiDocument } from './openapi'
 import { authRoutes } from './routes/auth-routes'
 import { systemRoutes } from './routes/system-routes'
@@ -12,6 +13,7 @@ export const createApp = () => {
   app.use('*', async (c, next) => {
     const start = Date.now()
     const requestId = c.req.header('x-request-id') ?? crypto.randomUUID()
+    const path = new URL(c.req.url).pathname
     c.set('requestId', requestId)
 
     await next()
@@ -19,17 +21,13 @@ export const createApp = () => {
     const durationMs = Date.now() - start
     c.header('x-request-id', requestId)
 
-    console.log(
-      JSON.stringify({
-        level: 'info',
-        type: 'request',
-        requestId,
-        method: c.req.method,
-        path: new URL(c.req.url).pathname,
-        status: c.res.status,
-        durationMs,
-      }),
-    )
+    logInfo('request', {
+      requestId,
+      method: c.req.method,
+      path,
+      status: c.res.status,
+      durationMs,
+    })
   })
 
   app.get('/openapi.json', (c) => c.json(createOpenApiDocument(c.req.url)))
@@ -53,15 +51,15 @@ export const createApp = () => {
     const requestId = c.get('requestId')
 
     if (err instanceof ApiError) {
-      console.error(
-        JSON.stringify({
-          level: 'error',
-          type: 'api_error',
+      logError(
+        'api_error',
+        {
           requestId,
           code: err.code,
           status: err.status,
           message: err.message,
-        }),
+        },
+        err,
       )
 
       return c.json(
@@ -74,14 +72,12 @@ export const createApp = () => {
       )
     }
 
-    console.error(
-      JSON.stringify({
-        level: 'error',
-        type: 'unhandled_error',
+    logError(
+      'unhandled_error',
+      {
         requestId,
-        message: err.message,
-        stack: err.stack,
-      }),
+      },
+      err,
     )
 
     return c.json(
