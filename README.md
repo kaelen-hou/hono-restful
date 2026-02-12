@@ -112,7 +112,9 @@ src/
   index.ts                       # Workers 入口
   lib/
     errors.ts                    # 统一业务错误模型（status/code/message）
-    validators.ts                # 请求参数校验
+    validation.ts                # zod 校验中间件封装
+    schemas/
+      todo.ts                    # 请求参数 schema
   repositories/
     todo-repository.ts           # 仓库接口
     todo-repository-d1.ts        # Drizzle + D1 实现

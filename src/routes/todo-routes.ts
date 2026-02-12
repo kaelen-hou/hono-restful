@@ -1,14 +1,16 @@
 import { Hono } from 'hono'
 import {
-  parseCreateTodoInput,
-  parseId,
-  parseListTodosQuery,
-  parsePatchTodoInput,
-  parsePutTodoInput,
-} from '../lib/validators'
+  createTodoBodySchema,
+  listTodosQuerySchema,
+  patchTodoBodySchema,
+  putTodoBodySchema,
+  todoIdParamSchema,
+} from '../lib/schemas/todo'
+import { validate } from '../lib/validation'
 import { createTodoRepositoryFromEnv } from '../repositories/todo-repository-factory'
 import { createTodoService } from '../services/todo-service'
 import type { AppEnv } from '../types/env'
+import type { PatchTodoInput } from '../types/todo'
 
 export const todoRoutes = new Hono<AppEnv>()
 
@@ -18,46 +20,53 @@ todoRoutes.use('*', async (c, next) => {
   await next()
 })
 
-todoRoutes.get('/todos', async (c) => {
+todoRoutes.get('/todos', validate('query', listTodosQuerySchema), async (c) => {
   const service = c.get('todoService')
-  const query = parseListTodosQuery(c.req.raw)
+  const query = c.req.valid('query')
   const result = await service.listTodos(query)
   return c.json(result)
 })
 
-todoRoutes.get('/todos/:id', async (c) => {
+todoRoutes.get('/todos/:id', validate('param', todoIdParamSchema), async (c) => {
   const service = c.get('todoService')
-  const id = parseId(c.req.param('id'))
+  const { id } = c.req.valid('param')
   const todo = await service.getTodoById(id)
   return c.json(todo)
 })
 
-todoRoutes.post('/todos', async (c) => {
+todoRoutes.post('/todos', validate('json', createTodoBodySchema), async (c) => {
   const service = c.get('todoService')
-  const input = await parseCreateTodoInput(c.req.raw)
+  const input = c.req.valid('json')
   const todo = await service.createTodo(input)
   return c.json(todo, 201)
 })
 
-todoRoutes.put('/todos/:id', async (c) => {
+todoRoutes.put('/todos/:id', validate('param', todoIdParamSchema), validate('json', putTodoBodySchema), async (c) => {
   const service = c.get('todoService')
-  const id = parseId(c.req.param('id'))
-  const input = await parsePutTodoInput(c.req.raw)
+  const { id } = c.req.valid('param')
+  const input = c.req.valid('json')
   const todo = await service.replaceTodo(id, input)
   return c.json(todo)
 })
 
-todoRoutes.patch('/todos/:id', async (c) => {
+todoRoutes.patch('/todos/:id', validate('param', todoIdParamSchema), validate('json', patchTodoBodySchema), async (c) => {
   const service = c.get('todoService')
-  const id = parseId(c.req.param('id'))
-  const input = await parsePatchTodoInput(c.req.raw)
+  const { id } = c.req.valid('param')
+  const rawInput = c.req.valid('json')
+  const input: PatchTodoInput = {}
+  if (rawInput.title !== undefined) {
+    input.title = rawInput.title
+  }
+  if (rawInput.completed !== undefined) {
+    input.completed = rawInput.completed
+  }
   const todo = await service.patchTodo(id, input)
   return c.json(todo)
 })
 
-todoRoutes.delete('/todos/:id', async (c) => {
+todoRoutes.delete('/todos/:id', validate('param', todoIdParamSchema), async (c) => {
   const service = c.get('todoService')
-  const id = parseId(c.req.param('id'))
+  const { id } = c.req.valid('param')
   await service.deleteTodo(id)
   return c.body(null, 204)
 })

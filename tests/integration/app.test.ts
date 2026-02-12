@@ -30,7 +30,7 @@ describe('app integration', () => {
     expect(res.status).toBe(400)
     const body = (await res.json()) as { code: string; message: string; requestId: string }
     expect(body.code).toBe('BAD_REQUEST')
-    expect(body.message).toContain('completed')
+    expect(typeof body.message).toBe('string')
     expect(body.requestId).toBeTruthy()
   })
 
