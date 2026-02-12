@@ -1,4 +1,4 @@
-export type ApiErrorStatus = 400 | 401 | 403 | 404 | 409 | 500 | 503
+export type ApiErrorStatus = 400 | 401 | 403 | 404 | 409 | 429 | 500 | 503
 
 export type ApiErrorCode =
   | 'BAD_REQUEST'
@@ -6,6 +6,7 @@ export type ApiErrorCode =
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  | 'TOO_MANY_REQUESTS'
   | 'CONFIG_ERROR'
   | 'INTERNAL_ERROR'
 

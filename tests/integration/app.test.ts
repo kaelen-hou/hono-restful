@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createApp } from '../../src/app'
+import { resetRateLimitStore } from '../../src/lib/rate-limit'
 import { resetMemoryDbStore } from '../../src/repositories/memory-store'
 
 const devEnv = {
@@ -41,6 +42,7 @@ const registerAndGetTokens = async (app: ReturnType<typeof createApp>): Promise<
 describe('app integration', () => {
   beforeEach(() => {
     resetMemoryDbStore()
+    resetRateLimitStore()
   })
 
   it('should return request id header', async () => {
@@ -324,6 +326,45 @@ describe('app integration', () => {
     expect(loginRes.status).toBe(401)
     const body = (await loginRes.json()) as { code: string }
     expect(body.code).toBe('UNAUTHORIZED')
+  })
+
+  it('should return 429 when login attempts exceed rate limit', async () => {
+    const app = createApp()
+    const email = `${crypto.randomUUID()}@example.com`
+    await registerUser(app, email)
+
+    const headers = {
+      'content-type': 'application/json',
+      'x-forwarded-for': '203.0.113.10',
+    }
+
+    for (let i = 0; i < 5; i += 1) {
+      const res = await app.request(
+        '/auth/login',
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ email, password: 'wrong-password' }),
+        },
+        devEnv,
+      )
+      expect(res.status).toBe(401)
+    }
+
+    const limited = await app.request(
+      '/auth/login',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ email, password: 'wrong-password' }),
+      },
+      devEnv,
+    )
+    expect(limited.status).toBe(429)
+
+    const body = (await limited.json()) as { code: string; message: string }
+    expect(body.code).toBe('TOO_MANY_REQUESTS')
+    expect(body.message).toBe('rate limit exceeded')
   })
 
   it('should support todo crud flow', async () => {

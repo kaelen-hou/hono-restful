@@ -80,6 +80,7 @@ npm run deploy
 
 所有 `/todos` 路由都需要 `Authorization: Bearer <token>`。
 普通用户只能访问自己的 todo，`admin` 可访问全部（并可通过 `GET /todos?userId=...` 指定用户）。
+`/auth/login` 与 `/auth/refresh` 启用了基础限流，超限会返回 `429 TOO_MANY_REQUESTS`。
 
 ## 认证示例
 
