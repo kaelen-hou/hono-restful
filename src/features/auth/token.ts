@@ -20,6 +20,8 @@ type AccessTokenPayload = BaseTokenPayload & {
 type RefreshTokenPayload = BaseTokenPayload & {
   type: 'refresh'
   jti: string
+  familyId: string
+  deviceId: string
 }
 
 const getJwtSecret = (secret?: string): string => {
@@ -34,7 +36,13 @@ const toUnixSeconds = (date: Date): number => Math.floor(date.getTime() / 1000)
 export const createTokenPair = async (
   user: AuthUser,
   jwtSecret?: string,
-): Promise<AuthTokens & { jti: string; refreshExpiresAt: string }> => {
+  options?: {
+    familyId?: string
+    deviceId?: string
+  },
+): Promise<
+  AuthTokens & { jti: string; familyId: string; deviceId: string; refreshExpiresAt: string }
+> => {
   const secret = getJwtSecret(jwtSecret)
   const now = new Date()
   const nowSec = toUnixSeconds(now)
@@ -48,6 +56,8 @@ export const createTokenPair = async (
     exp: nowSec + ACCESS_EXPIRES_IN_SECONDS,
   }
 
+  const familyId = options?.familyId ?? crypto.randomUUID()
+  const deviceId = options?.deviceId ?? 'unknown'
   const refreshJti = crypto.randomUUID()
   const refreshExpiresAtDate = new Date(now.getTime() + REFRESH_EXPIRES_IN_SECONDS * 1000)
   const refreshPayload: RefreshTokenPayload = {
@@ -58,6 +68,8 @@ export const createTokenPair = async (
     iat: nowSec,
     exp: toUnixSeconds(refreshExpiresAtDate),
     jti: refreshJti,
+    familyId,
+    deviceId,
   }
 
   const accessToken = await Jwt.sign(accessPayload, secret, 'HS256')
@@ -67,6 +79,8 @@ export const createTokenPair = async (
     accessToken,
     refreshToken,
     jti: refreshJti,
+    familyId,
+    deviceId,
     refreshExpiresAt: refreshExpiresAtDate.toISOString(),
   }
 }
@@ -104,7 +118,7 @@ export const verifyAccessToken = async (token: string, jwtSecret?: string): Prom
 export const verifyRefreshToken = async (
   token: string,
   jwtSecret?: string,
-): Promise<AuthUser & { jti: string; exp: number }> => {
+): Promise<AuthUser & { jti: string; familyId: string; deviceId: string; exp: number }> => {
   const secret = getJwtSecret(jwtSecret)
 
   let payload: AccessTokenPayload | RefreshTokenPayload
@@ -127,11 +141,17 @@ export const verifyRefreshToken = async (
     throw new ApiError(401, 'UNAUTHORIZED', 'invalid token role')
   }
 
+  if (!payload.familyId || !payload.deviceId) {
+    throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token payload')
+  }
+
   return {
     id,
     email: payload.email,
     role: payload.role,
     jti: payload.jti,
+    familyId: payload.familyId,
+    deviceId: payload.deviceId,
     exp: payload.exp,
   }
 }

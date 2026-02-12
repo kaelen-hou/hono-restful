@@ -25,16 +25,39 @@ const createRepo = (): UserRepository => {
       sessions.set(input.jti, {
         jti: input.jti,
         user_id: input.userId,
+        family_id: input.familyId,
+        device_id: input.deviceId,
         expires_at: input.expiresAt,
         revoked_at: null,
+        revoked_reason: null,
+        replaced_by_jti: null,
         created_at: new Date().toISOString(),
       })
     },
     findRefreshSessionByJti: async (jti) => sessions.get(jti) ?? null,
-    revokeRefreshSession: async (jti) => {
+    markRefreshSessionRotated: async (jti, replacedByJti) => {
       const row = sessions.get(jti)
       if (row) {
         row.revoked_at = new Date().toISOString()
+        row.revoked_reason = 'rotated'
+        row.replaced_by_jti = replacedByJti
+      }
+    },
+    revokeRefreshSession: async (jti, reason) => {
+      const row = sessions.get(jti)
+      if (row) {
+        row.revoked_at = new Date().toISOString()
+        row.revoked_reason = reason
+      }
+    },
+    revokeRefreshSessionFamily: async (familyId, reason) => {
+      for (const row of sessions.values()) {
+        if (row.family_id !== familyId) {
+          continue
+        }
+
+        row.revoked_at = new Date().toISOString()
+        row.revoked_reason = reason
       }
     },
   }
@@ -50,7 +73,10 @@ describe('auth-service', () => {
     }
 
     const service = createAuthService(repo, 'unit-secret')
-    const result = await service.register({ email: 'new@example.com', password: 'Password123!' })
+    const result = await service.register(
+      { email: 'new@example.com', password: 'Password123!' },
+      'test-device',
+    )
 
     expect(result.user.email).toBe('new@example.com')
     expect(result.accessToken).toBeTruthy()
@@ -60,21 +86,21 @@ describe('auth-service', () => {
   it('register should throw conflict if email exists', async () => {
     const service = createAuthService(createRepo(), 'unit-secret')
     await expect(
-      service.register({ email: 'user@example.com', password: 'Password123!' }),
+      service.register({ email: 'user@example.com', password: 'Password123!' }, 'test-device'),
     ).rejects.toBeInstanceOf(ApiError)
   })
 
   it('login should throw when user is missing', async () => {
     const service = createAuthService(createRepo(), 'unit-secret')
     await expect(
-      service.login({ email: 'missing@example.com', password: 'any' }),
+      service.login({ email: 'missing@example.com', password: 'any' }, 'test-device'),
     ).rejects.toBeInstanceOf(ApiError)
   })
 
   it('login should throw when password is wrong', async () => {
     const service = createAuthService(createRepo(), 'unit-secret')
     await expect(
-      service.login({ email: 'user@example.com', password: 'wrong' }),
+      service.login({ email: 'user@example.com', password: 'wrong' }, 'test-device'),
     ).rejects.toBeInstanceOf(ApiError)
   })
 
@@ -85,17 +111,22 @@ describe('auth-service', () => {
     }
     const service = createAuthService(repo, 'unit-secret')
 
-    const registered = await service.register({
-      email: 'refresh@example.com',
-      password: 'Password123!',
-    })
-    const refreshed = await service.refresh(registered.refreshToken)
+    const registered = await service.register(
+      {
+        email: 'refresh@example.com',
+        password: 'Password123!',
+      },
+      'test-device',
+    )
+    const refreshed = await service.refresh(registered.refreshToken, 'test-device')
 
     expect(refreshed.accessToken).toBeTruthy()
     expect(refreshed.refreshToken).toBeTruthy()
     expect(refreshed.refreshToken).not.toBe(registered.refreshToken)
 
-    await expect(service.refresh(registered.refreshToken)).rejects.toBeInstanceOf(ApiError)
+    await expect(service.refresh(registered.refreshToken, 'test-device')).rejects.toBeInstanceOf(
+      ApiError,
+    )
   })
 
   it('logout should revoke refresh token', async () => {
@@ -105,13 +136,18 @@ describe('auth-service', () => {
     }
     const service = createAuthService(repo, 'unit-secret')
 
-    const registered = await service.register({
-      email: 'logout@example.com',
-      password: 'Password123!',
-    })
-    await service.logout(registered.refreshToken)
+    const registered = await service.register(
+      {
+        email: 'logout@example.com',
+        password: 'Password123!',
+      },
+      'test-device',
+    )
+    await service.logout(registered.refreshToken, 'test-device')
 
-    await expect(service.refresh(registered.refreshToken)).rejects.toBeInstanceOf(ApiError)
+    await expect(service.refresh(registered.refreshToken, 'test-device')).rejects.toBeInstanceOf(
+      ApiError,
+    )
   })
 
   it('register should throw when create returns null', async () => {
@@ -124,7 +160,7 @@ describe('auth-service', () => {
 
     const service = createAuthService(repo, 'unit-secret')
     await expect(
-      service.register({ email: 'new@example.com', password: 'Password123!' }),
+      service.register({ email: 'new@example.com', password: 'Password123!' }, 'test-device'),
     ).rejects.toBeInstanceOf(ApiError)
   })
 })

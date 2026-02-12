@@ -17,8 +17,12 @@ export const refreshSessionsTable = sqliteTable('refresh_sessions', {
   userId: integer('user_id')
     .notNull()
     .references(() => usersTable.id),
+  familyId: text('family_id').notNull(),
+  deviceId: text('device_id').notNull(),
   expiresAt: text('expires_at').notNull(),
   revokedAt: text('revoked_at'),
+  revokedReason: text('revoked_reason'),
+  replacedByJti: text('replaced_by_jti'),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 })
 

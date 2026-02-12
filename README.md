@@ -46,6 +46,10 @@ npm run dev
 
 默认 `DB_DRIVER=d1`，线上默认 `APP_ENV=production`（见 `wrangler.toml`）。
 请把 `JWT_SECRET` 改为一个高强度随机字符串。
+运行时会做环境配置校验（fail-fast）：
+- `JWT_SECRET` 长度必须 >= 16
+- `DB_DRIVER=d1` 时必须提供 `DB` 绑定
+- `DB_DRIVER=memory` 仅允许 `APP_ENV=development`
 
 ## 5. 部署到 Cloudflare
 
@@ -81,6 +85,7 @@ npm run deploy
 所有 `/api/v1/todos` 路由都需要 `Authorization: Bearer <token>`。
 普通用户只能访问自己的 todo，`admin` 可访问全部（并可通过 `GET /api/v1/todos?userId=...` 指定用户）。
 `/api/v1/auth/login` 与 `/api/v1/auth/refresh` 启用了基础限流，超限会返回 `429 TOO_MANY_REQUESTS`。
+refresh token 采用“家族旋转”机制，并记录设备会话（可通过 `x-device-id` 传递设备标识；未传时回退到 `user-agent`）。
 
 ## 认证示例
 
@@ -145,9 +150,12 @@ curl -X POST http://127.0.0.1:8787/api/v1/auth/logout \
 
 - 所有请求会输出结构化日志（包含 method/path/status/duration/requestId）
 - 所有请求会输出结构化指标事件（`metric_http_request`）
+- 所有请求会输出结构化 trace 事件（`trace_span`）
 - 每个响应包含 `x-request-id`
 - `memory` 驱动在 `staging/production` 环境会被禁止，避免误配置
 - `GET /api/v1/todos` 强制分页与最大限制（limit 最大 100）
+
+测试中包含 OpenAPI 驱动的 contract test（读取 `/api/v1/openapi.json` 并校验文档化操作的响应码契约）。
 
 可观测性字段与告警建议见：
 

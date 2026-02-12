@@ -1,4 +1,4 @@
-import type { RefreshSessionRow, UserRole, UserRow } from '@/types/user'
+import type { RefreshRevokeReason, RefreshSessionRow, UserRole, UserRow } from '@/types/user'
 
 export type CreateUserRecordInput = {
   email: string
@@ -9,6 +9,8 @@ export type CreateUserRecordInput = {
 export type CreateRefreshSessionInput = {
   jti: string
   userId: number
+  familyId: string
+  deviceId: string
   expiresAt: string
 }
 
@@ -19,5 +21,7 @@ export interface UserRepository {
 
   createRefreshSession(input: CreateRefreshSessionInput): Promise<void>
   findRefreshSessionByJti(jti: string): Promise<RefreshSessionRow | null>
-  revokeRefreshSession(jti: string): Promise<void>
+  markRefreshSessionRotated(jti: string, replacedByJti: string): Promise<void>
+  revokeRefreshSession(jti: string, reason: RefreshRevokeReason): Promise<void>
+  revokeRefreshSessionFamily(familyId: string, reason: RefreshRevokeReason): Promise<void>
 }

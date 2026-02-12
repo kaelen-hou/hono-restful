@@ -16,6 +16,9 @@ describe('auth utils', () => {
         role: 'user',
       },
       'unit-secret',
+      {
+        deviceId: 'test-device',
+      },
     )
 
     const accessPayload = await verifyAccessToken(tokens.accessToken, 'unit-secret')
@@ -24,6 +27,8 @@ describe('auth utils', () => {
     expect(accessPayload).toMatchObject({ id: 1, email: 'user@example.com', role: 'user' })
     expect(refreshPayload).toMatchObject({ id: 1, email: 'user@example.com', role: 'user' })
     expect(refreshPayload.jti).toBe(tokens.jti)
+    expect(refreshPayload.familyId).toBe(tokens.familyId)
+    expect(refreshPayload.deviceId).toBe('test-device')
   })
 
   it('should throw when jwt secret is missing', async () => {

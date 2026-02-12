@@ -1,3 +1,4 @@
+import { parseRuntimeBindings } from '@/config/env'
 import { createTodoRepositoryFromEnv } from '@/infrastructure/persistence/todo/repository-factory'
 import { createUserRepositoryFromEnv } from '@/infrastructure/persistence/user/repository-factory'
 import { type AuthService, createAuthService } from '@/services/auth-service'
@@ -10,11 +11,18 @@ export type RequestServices = {
 }
 
 export const createRequestServices = (bindings: Bindings): RequestServices => {
-  const todoRepository = createTodoRepositoryFromEnv(bindings)
-  const userRepository = createUserRepositoryFromEnv(bindings)
+  const config = parseRuntimeBindings(bindings)
+  const normalizedBindings: Bindings = {
+    DB_DRIVER: config.DB_DRIVER,
+    APP_ENV: config.APP_ENV,
+    JWT_SECRET: config.JWT_SECRET,
+    ...(config.DB ? { DB: config.DB } : {}),
+  }
+  const todoRepository = createTodoRepositoryFromEnv(normalizedBindings)
+  const userRepository = createUserRepositoryFromEnv(normalizedBindings)
 
   return {
-    authService: createAuthService(userRepository, bindings.JWT_SECRET),
+    authService: createAuthService(userRepository, config.JWT_SECRET),
     todoService: createTodoService(todoRepository),
   }
 }

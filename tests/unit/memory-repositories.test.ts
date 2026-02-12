@@ -71,17 +71,28 @@ describe('memory user repository', () => {
     await repository.createRefreshSession({
       jti: 'jti-1',
       userId: userId as number,
+      familyId: 'family-1',
+      deviceId: 'device-1',
       expiresAt,
     })
 
     const session = await repository.findRefreshSessionByJti('jti-1')
     expect(session?.revoked_at).toBeNull()
     expect(session?.expires_at).toBe(expiresAt)
+    expect(session?.family_id).toBe('family-1')
+    expect(session?.device_id).toBe('device-1')
 
-    await repository.revokeRefreshSession('jti-1')
+    await repository.markRefreshSessionRotated('jti-1', 'jti-2')
+    const rotated = await repository.findRefreshSessionByJti('jti-1')
+    expect(rotated?.replaced_by_jti).toBe('jti-2')
+
+    await repository.revokeRefreshSession('jti-1', 'logout')
     const revoked = await repository.findRefreshSessionByJti('jti-1')
     expect(revoked?.revoked_at).toBeTruthy()
+    expect(revoked?.revoked_reason).toBe('logout')
 
-    await expect(repository.revokeRefreshSession('missing-jti')).resolves.toBeUndefined()
+    await repository.revokeRefreshSessionFamily('family-1', 'security_event')
+
+    await expect(repository.revokeRefreshSession('missing-jti', 'logout')).resolves.toBeUndefined()
   })
 })

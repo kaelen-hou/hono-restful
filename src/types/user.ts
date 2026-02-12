@@ -12,10 +12,16 @@ export type UserRow = {
 export type RefreshSessionRow = {
   jti: string
   user_id: number
+  family_id: string
+  device_id: string
   expires_at: string
   revoked_at: string | null
+  revoked_reason: string | null
+  replaced_by_jti: string | null
   created_at: string
 }
+
+export type RefreshRevokeReason = 'logout' | 'rotated' | 'reuse_detected' | 'security_event'
 
 export type User = {
   id: number

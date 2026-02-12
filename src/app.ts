@@ -4,6 +4,7 @@ import { API_PREFIX } from './constants/api'
 import { ApiError } from './lib/errors'
 import { logError, logInfo } from './lib/logger'
 import { recordHttpMetric } from './lib/metrics'
+import { getObservability } from './observability'
 import { createDocsHtml, createOpenApiDocument } from './openapi'
 import { authRoutes } from './routes/auth-routes'
 import { systemRoutes } from './routes/system-routes'
@@ -18,6 +19,11 @@ export const createApp = () => {
     const requestId = c.req.header('x-request-id') ?? crypto.randomUUID()
     const path = new URL(c.req.url).pathname
     c.set('requestId', requestId)
+    const span = getObservability().trace.startSpan('http.request', {
+      requestId,
+      method: c.req.method,
+      path,
+    })
 
     await next()
 
@@ -52,6 +58,11 @@ export const createApp = () => {
     }
 
     recordHttpMetric(metricContext)
+    span.end({
+      status: c.res.status,
+      durationMs,
+      ...(errorCode ? { errorCode } : {}),
+    })
   })
 
   app.use('*', async (c, next) => {

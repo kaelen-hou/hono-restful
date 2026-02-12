@@ -27,7 +27,10 @@ const toMaskedEmail = (email: string): string => {
 }
 
 export const createAuthService = (userRepository: UserRepository, jwtSecret?: string) => {
-  const issueTokenPair = async (user: UserRow): Promise<AuthTokens> => {
+  const issueTokenPair = async (
+    user: UserRow,
+    options: { deviceId: string; familyId?: string },
+  ): Promise<AuthTokens & { jti: string; familyId: string; deviceId: string }> => {
     const tokenPair = await createTokenPair(
       {
         id: user.id,
@@ -35,21 +38,26 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
         role: user.role,
       },
       jwtSecret,
+      options.familyId
+        ? { familyId: options.familyId, deviceId: options.deviceId }
+        : { deviceId: options.deviceId },
     )
 
     await userRepository.createRefreshSession({
       jti: tokenPair.jti,
       userId: user.id,
+      familyId: tokenPair.familyId,
+      deviceId: tokenPair.deviceId,
       expiresAt: tokenPair.refreshExpiresAt,
     })
 
-    return {
-      accessToken: tokenPair.accessToken,
-      refreshToken: tokenPair.refreshToken,
-    }
+    return tokenPair
   }
 
-  const register = async (input: RegisterInput): Promise<AuthTokens & { user: User }> => {
+  const register = async (
+    input: RegisterInput,
+    deviceId: string,
+  ): Promise<AuthTokens & { user: User }> => {
     const maskedEmail = toMaskedEmail(input.email)
     const existing = await userRepository.findByEmail(input.email)
     if (existing) {
@@ -75,7 +83,7 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
       throw new ApiError(500, 'INTERNAL_ERROR', 'failed to fetch created user')
     }
 
-    const tokens = await issueTokenPair(created)
+    const tokens = await issueTokenPair(created, { deviceId })
     logAudit('auth_register_success', {
       userId: created.id,
       email: toMaskedEmail(created.email),
@@ -84,7 +92,10 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
     return { ...tokens, user: toUser(created) }
   }
 
-  const login = async (input: LoginInput): Promise<AuthTokens & { user: User }> => {
+  const login = async (
+    input: LoginInput,
+    deviceId: string,
+  ): Promise<AuthTokens & { user: User }> => {
     const maskedEmail = toMaskedEmail(input.email)
     const user = await userRepository.findByEmail(input.email)
     if (!user) {
@@ -104,7 +115,7 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
       throw new ApiError(401, 'UNAUTHORIZED', 'invalid credentials')
     }
 
-    const tokens = await issueTokenPair(user)
+    const tokens = await issueTokenPair(user, { deviceId })
     logAudit('auth_login_success', {
       userId: user.id,
       email: toMaskedEmail(user.email),
@@ -113,7 +124,7 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
     return { ...tokens, user: toUser(user) }
   }
 
-  const refresh = async (refreshToken: string): Promise<AuthTokens> => {
+  const refresh = async (refreshToken: string, deviceId: string): Promise<AuthTokens> => {
     let payload: Awaited<ReturnType<typeof verifyRefreshToken>>
     try {
       payload = await verifyRefreshToken(refreshToken, jwtSecret)
@@ -126,10 +137,41 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
 
     const session = await userRepository.findRefreshSessionByJti(payload.jti)
 
-    if (!session || session.revoked_at || isExpired(session.expires_at)) {
+    if (!session || isExpired(session.expires_at)) {
       logAudit('auth_refresh_failed', {
         userId: payload.id,
         reason: 'session_invalid',
+      })
+      throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
+    }
+
+    if (session.revoked_at) {
+      if (session.replaced_by_jti) {
+        await userRepository.revokeRefreshSessionFamily(session.family_id, 'reuse_detected')
+        logAudit('auth_refresh_reuse_detected', {
+          userId: payload.id,
+          familyId: session.family_id,
+          deviceId: session.device_id,
+        })
+      }
+
+      logAudit('auth_refresh_failed', {
+        userId: payload.id,
+        reason: 'session_revoked',
+      })
+      throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
+    }
+
+    if (
+      session.user_id !== payload.id ||
+      session.family_id !== payload.familyId ||
+      session.device_id !== payload.deviceId ||
+      payload.deviceId !== deviceId
+    ) {
+      await userRepository.revokeRefreshSessionFamily(session.family_id, 'security_event')
+      logAudit('auth_refresh_failed', {
+        userId: payload.id,
+        reason: 'session_mismatch',
       })
       throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
     }
@@ -143,16 +185,24 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
       throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
     }
 
-    await userRepository.revokeRefreshSession(payload.jti)
-    const tokens = await issueTokenPair(user)
+    const next = await issueTokenPair(user, {
+      deviceId: payload.deviceId,
+      familyId: payload.familyId,
+    })
+    await userRepository.markRefreshSessionRotated(payload.jti, next.jti)
     logAudit('auth_refresh_success', {
       userId: user.id,
       email: toMaskedEmail(user.email),
+      familyId: payload.familyId,
+      deviceId: payload.deviceId,
     })
-    return tokens
+    return {
+      accessToken: next.accessToken,
+      refreshToken: next.refreshToken,
+    }
   }
 
-  const logout = async (refreshToken: string): Promise<void> => {
+  const logout = async (refreshToken: string, deviceId: string): Promise<void> => {
     let payload: Awaited<ReturnType<typeof verifyRefreshToken>>
     try {
       payload = await verifyRefreshToken(refreshToken, jwtSecret)
@@ -163,9 +213,15 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
       throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
     }
 
-    await userRepository.revokeRefreshSession(payload.jti)
+    if (payload.deviceId !== deviceId) {
+      throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
+    }
+
+    await userRepository.revokeRefreshSessionFamily(payload.familyId, 'logout')
     logAudit('auth_logout_success', {
       userId: payload.id,
+      familyId: payload.familyId,
+      deviceId,
     })
   }
 

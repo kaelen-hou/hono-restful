@@ -6,7 +6,7 @@ import { resetRateLimitStore } from '../../src/lib/rate-limit'
 const devEnv = {
   DB_DRIVER: 'memory' as const,
   APP_ENV: 'development' as const,
-  JWT_SECRET: 'test-secret',
+  JWT_SECRET: 'test-secret-long-enough',
 }
 
 type AuthPayload = {
@@ -227,7 +227,7 @@ describe('app integration', () => {
     const res = await app.request(
       '/api/v1/ready',
       {},
-      { DB_DRIVER: 'memory', APP_ENV: 'production', JWT_SECRET: 'test-secret' },
+      { DB_DRIVER: 'memory', APP_ENV: 'production', JWT_SECRET: 'test-secret-long-enough' },
     )
 
     expect(res.status).toBe(500)

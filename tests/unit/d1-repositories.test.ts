@@ -268,8 +268,12 @@ describe('d1 user repository', () => {
       {
         jti: 'jti-1',
         userId: 3,
+        familyId: 'family-1',
+        deviceId: 'device-1',
         expiresAt: '2099-01-01T00:00:00.000Z',
         revokedAt: null,
+        revokedReason: null,
+        replacedByJti: null,
         createdAt: '2024-01-01T00:00:00.000Z',
       },
     ])
@@ -291,14 +295,20 @@ describe('d1 user repository', () => {
     await repository.createRefreshSession({
       jti: 'jti-1',
       userId: 3,
+      familyId: 'family-1',
+      deviceId: 'device-1',
       expiresAt: '2099-01-01T00:00:00.000Z',
     })
     const session = await repository.findRefreshSessionByJti('jti-1')
-    await repository.revokeRefreshSession('jti-1')
+    await repository.markRefreshSessionRotated('jti-1', 'jti-2')
+    await repository.revokeRefreshSession('jti-1', 'logout')
+    await repository.revokeRefreshSessionFamily('family-1', 'security_event')
 
     expect(insertValues).toHaveBeenCalled()
     expect(session?.jti).toBe('jti-1')
     expect(session?.user_id).toBe(3)
+    expect(session?.family_id).toBe('family-1')
+    expect(session?.device_id).toBe('device-1')
     expect(revokeWhere).toHaveBeenCalled()
   })
 

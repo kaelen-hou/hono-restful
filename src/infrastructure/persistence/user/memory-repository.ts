@@ -3,7 +3,7 @@ import type {
   CreateUserRecordInput,
   UserRepository,
 } from '@/repositories/user-repository'
-import type { RefreshSessionRow, UserRow } from '@/types/user'
+import type { RefreshRevokeReason, RefreshSessionRow, UserRow } from '@/types/user'
 import { getMemoryDbStore } from '../memory-store'
 
 const now = () => new Date().toISOString()
@@ -43,8 +43,12 @@ export const createMemoryUserRepository = (): UserRepository => {
     const row: RefreshSessionRow = {
       jti: input.jti,
       user_id: input.userId,
+      family_id: input.familyId,
+      device_id: input.deviceId,
       expires_at: input.expiresAt,
       revoked_at: null,
+      revoked_reason: null,
+      replaced_by_jti: null,
       created_at: now(),
     }
 
@@ -56,13 +60,40 @@ export const createMemoryUserRepository = (): UserRepository => {
     return row ?? null
   }
 
-  const revokeRefreshSession = async (jti: string): Promise<void> => {
+  const markRefreshSessionRotated = async (jti: string, replacedByJti: string): Promise<void> => {
     const row = store.refreshSessions.find((item) => item.jti === jti)
     if (!row) {
       return
     }
 
     row.revoked_at = now()
+    row.revoked_reason = 'rotated'
+    row.replaced_by_jti = replacedByJti
+  }
+
+  const revokeRefreshSession = async (jti: string, reason: RefreshRevokeReason): Promise<void> => {
+    const row = store.refreshSessions.find((item) => item.jti === jti)
+    if (!row) {
+      return
+    }
+
+    row.revoked_at = now()
+    row.revoked_reason = reason
+  }
+
+  const revokeRefreshSessionFamily = async (
+    familyId: string,
+    reason: RefreshRevokeReason,
+  ): Promise<void> => {
+    const revokedAt = now()
+    for (const row of store.refreshSessions) {
+      if (row.family_id !== familyId) {
+        continue
+      }
+
+      row.revoked_at = revokedAt
+      row.revoked_reason = reason
+    }
   }
 
   return {
@@ -71,6 +102,8 @@ export const createMemoryUserRepository = (): UserRepository => {
     create,
     createRefreshSession,
     findRefreshSessionByJti,
+    markRefreshSessionRotated,
     revokeRefreshSession,
+    revokeRefreshSessionFamily,
   }
 }

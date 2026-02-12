@@ -6,7 +6,7 @@ import type {
   CreateUserRecordInput,
   UserRepository,
 } from '@/repositories/user-repository'
-import type { RefreshSessionRow, UserRow } from '@/types/user'
+import type { RefreshRevokeReason, RefreshSessionRow, UserRow } from '@/types/user'
 
 const toUserRow = (row: typeof usersTable.$inferSelect): UserRow => ({
   id: row.id,
@@ -20,8 +20,12 @@ const toUserRow = (row: typeof usersTable.$inferSelect): UserRow => ({
 const toRefreshSessionRow = (row: typeof refreshSessionsTable.$inferSelect): RefreshSessionRow => ({
   jti: row.jti,
   user_id: row.userId,
+  family_id: row.familyId,
+  device_id: row.deviceId,
   expires_at: row.expiresAt,
   revoked_at: row.revokedAt,
+  revoked_reason: row.revokedReason,
+  replaced_by_jti: row.replacedByJti,
   created_at: row.createdAt,
 })
 
@@ -59,6 +63,8 @@ export const createD1UserRepository = (d1: D1Database): UserRepository => {
     await db.insert(refreshSessionsTable).values({
       jti: input.jti,
       userId: input.userId,
+      familyId: input.familyId,
+      deviceId: input.deviceId,
       expiresAt: input.expiresAt,
     })
   }
@@ -74,11 +80,32 @@ export const createD1UserRepository = (d1: D1Database): UserRepository => {
     return row ? toRefreshSessionRow(row) : null
   }
 
-  const revokeRefreshSession = async (jti: string): Promise<void> => {
+  const markRefreshSessionRotated = async (jti: string, replacedByJti: string): Promise<void> => {
     await db
       .update(refreshSessionsTable)
-      .set({ revokedAt: sql`CURRENT_TIMESTAMP` })
+      .set({
+        revokedAt: sql`CURRENT_TIMESTAMP`,
+        revokedReason: 'rotated',
+        replacedByJti,
+      })
       .where(eq(refreshSessionsTable.jti, jti))
+  }
+
+  const revokeRefreshSession = async (jti: string, reason: RefreshRevokeReason): Promise<void> => {
+    await db
+      .update(refreshSessionsTable)
+      .set({ revokedAt: sql`CURRENT_TIMESTAMP`, revokedReason: reason })
+      .where(eq(refreshSessionsTable.jti, jti))
+  }
+
+  const revokeRefreshSessionFamily = async (
+    familyId: string,
+    reason: RefreshRevokeReason,
+  ): Promise<void> => {
+    await db
+      .update(refreshSessionsTable)
+      .set({ revokedAt: sql`CURRENT_TIMESTAMP`, revokedReason: reason })
+      .where(eq(refreshSessionsTable.familyId, familyId))
   }
 
   return {
@@ -87,6 +114,8 @@ export const createD1UserRepository = (d1: D1Database): UserRepository => {
     create,
     createRefreshSession,
     findRefreshSessionByJti,
+    markRefreshSessionRotated,
     revokeRefreshSession,
+    revokeRefreshSessionFamily,
   }
 }
