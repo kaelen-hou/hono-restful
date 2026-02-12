@@ -8,7 +8,12 @@ const devEnv = {
   JWT_SECRET: 'test-secret',
 }
 
-const registerAndGetToken = async (app: ReturnType<typeof createApp>): Promise<string> => {
+type AuthPayload = {
+  accessToken: string
+  refreshToken: string
+}
+
+const registerAndGetTokens = async (app: ReturnType<typeof createApp>): Promise<AuthPayload> => {
   const email = `${crypto.randomUUID()}@example.com`
   const registerRes = await app.request(
     '/auth/register',
@@ -21,8 +26,8 @@ const registerAndGetToken = async (app: ReturnType<typeof createApp>): Promise<s
   )
 
   expect(registerRes.status).toBe(201)
-  const registerBody = (await registerRes.json()) as { token: string }
-  return registerBody.token
+  const registerBody = (await registerRes.json()) as AuthPayload
+  return registerBody
 }
 
 describe('app integration', () => {
@@ -49,7 +54,7 @@ describe('app integration', () => {
 
   it('should return unified error payload for bad request', async () => {
     const app = createApp()
-    const token = await registerAndGetToken(app)
+    const { accessToken } = await registerAndGetTokens(app)
 
     const res = await app.request(
       '/todos/1',
@@ -57,7 +62,7 @@ describe('app integration', () => {
         method: 'PUT',
         headers: {
           'content-type': 'application/json',
-          authorization: `Bearer ${token}`,
+          authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ title: 'missing completed' }),
       },
@@ -73,7 +78,7 @@ describe('app integration', () => {
 
   it('should support paginated todos response', async () => {
     const app = createApp()
-    const token = await registerAndGetToken(app)
+    const { accessToken } = await registerAndGetTokens(app)
 
     await app.request(
       '/todos',
@@ -81,7 +86,7 @@ describe('app integration', () => {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          authorization: `Bearer ${token}`,
+          authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ title: 'task-1' }),
       },
@@ -91,7 +96,7 @@ describe('app integration', () => {
     const res = await app.request(
       '/todos?limit=1&offset=0',
       {
-        headers: { authorization: `Bearer ${token}` },
+        headers: { authorization: `Bearer ${accessToken}` },
       },
       devEnv,
     )
@@ -106,6 +111,39 @@ describe('app integration', () => {
     expect(body.page.offset).toBe(0)
     expect(body.page.total).toBeGreaterThanOrEqual(1)
     expect(body.items.length).toBe(1)
+  })
+
+  it('should rotate refresh token', async () => {
+    const app = createApp()
+    const { refreshToken } = await registerAndGetTokens(app)
+
+    const refreshRes = await app.request(
+      '/auth/refresh',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      },
+      devEnv,
+    )
+
+    expect(refreshRes.status).toBe(200)
+    const refreshed = (await refreshRes.json()) as AuthPayload
+    expect(refreshed.accessToken).toBeTruthy()
+    expect(refreshed.refreshToken).toBeTruthy()
+    expect(refreshed.refreshToken).not.toBe(refreshToken)
+
+    const oldRefreshRes = await app.request(
+      '/auth/refresh',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      },
+      devEnv,
+    )
+
+    expect(oldRefreshRes.status).toBe(401)
   })
 
   it('ready should fail when memory driver used in production', async () => {

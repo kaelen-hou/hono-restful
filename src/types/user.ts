@@ -9,6 +9,14 @@ export type UserRow = {
   updated_at: string
 }
 
+export type RefreshSessionRow = {
+  jti: string
+  user_id: number
+  expires_at: string
+  revoked_at: string | null
+  created_at: string
+}
+
 export type User = {
   id: number
   email: string
@@ -31,4 +39,9 @@ export type RegisterInput = {
 export type LoginInput = {
   email: string
   password: string
+}
+
+export type AuthTokens = {
+  accessToken: string
+  refreshToken: string
 }

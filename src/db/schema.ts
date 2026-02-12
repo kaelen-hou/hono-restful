@@ -12,6 +12,16 @@ export const usersTable = sqliteTable('users', {
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 })
 
+export const refreshSessionsTable = sqliteTable('refresh_sessions', {
+  jti: text('jti').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => usersTable.id),
+  expiresAt: text('expires_at').notNull(),
+  revokedAt: text('revoked_at'),
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+})
+
 export const todosTable = sqliteTable('todos', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id')

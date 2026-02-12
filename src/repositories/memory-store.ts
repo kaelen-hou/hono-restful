@@ -1,9 +1,10 @@
 import type { TodoRow } from '../types/todo'
-import type { UserRow } from '../types/user'
+import type { RefreshSessionRow, UserRow } from '../types/user'
 
 export type MemoryDbStore = {
   todos: TodoRow[]
   users: UserRow[]
+  refreshSessions: RefreshSessionRow[]
   nextTodoId: number
   nextUserId: number
 }
@@ -11,6 +12,7 @@ export type MemoryDbStore = {
 const createMemoryDbStore = (): MemoryDbStore => ({
   todos: [],
   users: [],
+  refreshSessions: [],
   nextTodoId: 1,
   nextUserId: 1,
 })

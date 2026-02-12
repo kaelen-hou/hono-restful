@@ -68,6 +68,8 @@ npm run deploy
 - `GET /ready` readiness（检查依赖可用）
 - `POST /auth/register` 邮箱+密码注册
 - `POST /auth/login` 邮箱+密码登录
+- `POST /auth/refresh` 使用 refresh token 刷新双 token
+- `POST /auth/logout` 撤销 refresh token
 - `GET /auth/me` 获取当前登录用户
 - `GET /todos?limit=20&offset=0` 获取分页 to-do（需登录）
 - `GET /todos/:id` 获取单个 to-do（需登录）
@@ -95,6 +97,22 @@ curl -X POST http://127.0.0.1:8787/auth/register \
 curl -X POST http://127.0.0.1:8787/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"demo@example.com","password":"Password123!"}'
+```
+
+刷新 token：
+
+```bash
+curl -X POST http://127.0.0.1:8787/auth/refresh \
+  -H 'Content-Type: application/json' \
+  -d '{"refreshToken":"<refresh_token>"}'
+```
+
+退出登录（撤销 refresh token）：
+
+```bash
+curl -X POST http://127.0.0.1:8787/auth/logout \
+  -H 'Content-Type: application/json' \
+  -d '{"refreshToken":"<refresh_token>"}'
 ```
 
 ## 响应格式
