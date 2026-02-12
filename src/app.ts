@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { ApiError } from './lib/errors'
 import { logError, logInfo } from './lib/logger'
+import { recordHttpMetric } from './lib/metrics'
 import { createDocsHtml, createOpenApiDocument } from './openapi'
 import { authRoutes } from './routes/auth-routes'
 import { systemRoutes } from './routes/system-routes'
@@ -20,6 +21,15 @@ export const createApp = () => {
 
     const durationMs = Date.now() - start
     c.header('x-request-id', requestId)
+    let errorCode: string | undefined
+    if (c.res.status >= 400) {
+      try {
+        const payload = (await c.res.clone().json()) as { code?: string }
+        errorCode = payload.code
+      } catch {
+        errorCode = undefined
+      }
+    }
 
     logInfo('request', {
       requestId,
@@ -27,6 +37,16 @@ export const createApp = () => {
       path,
       status: c.res.status,
       durationMs,
+    })
+
+    recordHttpMetric({
+      requestId,
+      method: c.req.method,
+      path,
+      status: c.res.status,
+      durationMs,
+      errorCode,
+      userId: c.var.currentUser?.id,
     })
   })
 
