@@ -1,4 +1,5 @@
 import { desc, eq, sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 import { createDb } from '../db/client'
 import { todosTable } from '../db/schema'
 import type { CreateTodoInput, ListTodosQuery, PatchTodoInput, PutTodoInput, TodoRow } from '../types/todo'
@@ -54,7 +55,9 @@ export const createD1TodoRepository = (d1: D1Database): TodoRepository => {
       return 0
     }
 
-    const values: { title?: string; completed?: number } = {}
+    const values: { title?: string; completed?: number; updatedAt?: SQL } = {
+      updatedAt: sql`CURRENT_TIMESTAMP`,
+    }
 
     if (input.title !== undefined) {
       values.title = input.title
@@ -65,6 +68,7 @@ export const createD1TodoRepository = (d1: D1Database): TodoRepository => {
     }
 
     const result = await db.update(todosTable).set(values).where(eq(todosTable.id, id))
+
     return result.meta.changes ?? 0
   }
 

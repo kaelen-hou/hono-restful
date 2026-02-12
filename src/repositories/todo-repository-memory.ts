@@ -1,19 +1,19 @@
 import type { CreateTodoInput, ListTodosQuery, PatchTodoInput, PutTodoInput, TodoRow } from '../types/todo'
 import type { TodoListRows, TodoRepository } from './todo-repository'
 
-type MemoryStore = {
+export type MemoryStore = {
   rows: TodoRow[]
   nextId: number
 }
 
-const store: MemoryStore = {
+export const createMemoryStore = (): MemoryStore => ({
   rows: [],
   nextId: 1,
-}
+})
 
 const now = () => new Date().toISOString()
 
-export const createMemoryTodoRepository = (): TodoRepository => {
+export const createMemoryTodoRepository = (store: MemoryStore = createMemoryStore()): TodoRepository => {
   const list = async (query: ListTodosQuery): Promise<TodoListRows> => {
     const sorted = [...store.rows].sort((a, b) => b.id - a.id)
     const items = sorted.slice(query.offset, query.offset + query.limit)

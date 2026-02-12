@@ -6,6 +6,8 @@ import type { TodoRepository } from './todo-repository'
 
 const isProductionLike = (env?: string): boolean => env === 'production' || env === 'staging'
 
+let memoryRepositorySingleton: TodoRepository | null = null
+
 export const createTodoRepositoryFromEnv = (bindings: Bindings): TodoRepository => {
   const driver = bindings.DB_DRIVER ?? 'd1'
 
@@ -14,7 +16,11 @@ export const createTodoRepositoryFromEnv = (bindings: Bindings): TodoRepository 
       throw new ApiError(500, 'CONFIG_ERROR', 'memory db driver is forbidden outside development')
     }
 
-    return createMemoryTodoRepository()
+    if (!memoryRepositorySingleton) {
+      memoryRepositorySingleton = createMemoryTodoRepository()
+    }
+
+    return memoryRepositorySingleton
   }
 
   if (!bindings.DB) {
