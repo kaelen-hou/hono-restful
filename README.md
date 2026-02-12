@@ -143,9 +143,14 @@ curl -X POST http://127.0.0.1:8787/auth/logout \
 ## 观测与稳定性
 
 - 所有请求会输出结构化日志（包含 method/path/status/duration/requestId）
+- 所有请求会输出结构化指标事件（`metric_http_request`）
 - 每个响应包含 `x-request-id`
 - `memory` 驱动在 `staging/production` 环境会被禁止，避免误配置
 - `GET /todos` 强制分页与最大限制（limit 最大 100）
+
+可观测性字段与告警建议见：
+
+- `docs/observability.md`
 
 ## 工程结构
 
