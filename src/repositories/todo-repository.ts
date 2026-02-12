@@ -4,7 +4,7 @@ import type {
   PatchTodoInput,
   PutTodoInput,
   TodoRow,
-} from '../types/todo'
+} from '@/types/todo'
 
 export type TodoListRows = {
   items: TodoRow[]

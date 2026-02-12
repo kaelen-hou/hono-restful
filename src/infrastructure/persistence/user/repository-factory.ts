@@ -1,6 +1,6 @@
-import { ApiError } from '../../../lib/errors'
-import type { UserRepository } from '../../../repositories/user-repository'
-import type { Bindings } from '../../../types/env'
+import { ApiError } from '@/lib/errors'
+import type { UserRepository } from '@/repositories/user-repository'
+import type { Bindings } from '@/types/env'
 import { createD1UserRepository } from './d1-repository'
 import { createMemoryUserRepository } from './memory-repository'
 

@@ -1,8 +1,8 @@
-import { createTodoRepositoryFromEnv } from '../infrastructure/persistence/todo/repository-factory'
-import { createUserRepositoryFromEnv } from '../infrastructure/persistence/user/repository-factory'
-import { type AuthService, createAuthService } from '../services/auth-service'
-import { createTodoService, type TodoService } from '../services/todo-service'
-import type { Bindings } from '../types/env'
+import { createTodoRepositoryFromEnv } from '@/infrastructure/persistence/todo/repository-factory'
+import { createUserRepositoryFromEnv } from '@/infrastructure/persistence/user/repository-factory'
+import { type AuthService, createAuthService } from '@/services/auth-service'
+import { createTodoService, type TodoService } from '@/services/todo-service'
+import type { Bindings } from '@/types/env'
 
 export type RequestServices = {
   authService: AuthService

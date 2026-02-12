@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from 'hono'
-import { ApiError } from '../../lib/errors'
-import type { AppEnv } from '../../types/env'
+import { ApiError } from '@/lib/errors'
+import type { AppEnv } from '@/types/env'
 import { extractBearerToken, verifyAccessToken } from './token'
 
 export const requireAuth: MiddlewareHandler<AppEnv> = async (c, next) => {

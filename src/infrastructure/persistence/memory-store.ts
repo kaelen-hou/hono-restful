@@ -1,5 +1,5 @@
-import type { TodoRow } from '../../types/todo'
-import type { RefreshSessionRow, UserRow } from '../../types/user'
+import type { TodoRow } from '@/types/todo'
+import type { RefreshSessionRow, UserRow } from '@/types/user'
 
 export type MemoryDbStore = {
   todos: TodoRow[]

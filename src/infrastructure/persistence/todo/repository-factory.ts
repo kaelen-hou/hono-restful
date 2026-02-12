@@ -1,6 +1,6 @@
-import { ApiError } from '../../../lib/errors'
-import type { TodoRepository } from '../../../repositories/todo-repository'
-import type { Bindings } from '../../../types/env'
+import { ApiError } from '@/lib/errors'
+import type { TodoRepository } from '@/repositories/todo-repository'
+import type { Bindings } from '@/types/env'
 import { createD1TodoRepository } from './d1-repository'
 import { createMemoryTodoRepository } from './memory-repository'
 

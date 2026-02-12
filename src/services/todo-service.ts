@@ -1,5 +1,5 @@
-import { ApiError } from '../lib/errors'
-import type { TodoRepository } from '../repositories/todo-repository'
+import { ApiError } from '@/lib/errors'
+import type { TodoRepository } from '@/repositories/todo-repository'
 import type {
   CreateTodoInput,
   ListTodosQuery,
@@ -8,8 +8,8 @@ import type {
   PutTodoInput,
   Todo,
   TodoRow,
-} from '../types/todo'
-import type { AuthUser } from '../types/user'
+} from '@/types/todo'
+import type { AuthUser } from '@/types/user'
 
 const toTodo = (row: TodoRow): Todo => ({
   id: row.id,

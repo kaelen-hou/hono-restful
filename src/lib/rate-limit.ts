@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from 'hono'
-import type { AppEnv } from '../types/env'
+import type { AppEnv } from '@/types/env'
 import { ApiError } from './errors'
 
 type RateLimitOptions = {

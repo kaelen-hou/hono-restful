@@ -1,9 +1,9 @@
 import { Hono } from 'hono'
-import { requireAuth } from '../features/auth/middleware'
-import { loginBodySchema, refreshBodySchema, registerBodySchema } from '../features/auth/schemas'
-import { createRateLimitMiddleware } from '../lib/rate-limit'
-import { validate } from '../lib/validation'
-import type { AppEnv } from '../types/env'
+import { requireAuth } from '@/features/auth/middleware'
+import { loginBodySchema, refreshBodySchema, registerBodySchema } from '@/features/auth/schemas'
+import { createRateLimitMiddleware } from '@/lib/rate-limit'
+import { validate } from '@/lib/validation'
+import type { AppEnv } from '@/types/env'
 
 export const authRoutes = new Hono<AppEnv>()
 

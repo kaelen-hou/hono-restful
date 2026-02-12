@@ -2,8 +2,8 @@ import type {
   CreateRefreshSessionInput,
   CreateUserRecordInput,
   UserRepository,
-} from '../../../repositories/user-repository'
-import type { RefreshSessionRow, UserRow } from '../../../types/user'
+} from '@/repositories/user-repository'
+import type { RefreshSessionRow, UserRow } from '@/types/user'
 import { getMemoryDbStore } from '../memory-store'
 
 const now = () => new Date().toISOString()

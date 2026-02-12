@@ -1,4 +1,4 @@
-import type { RefreshSessionRow, UserRole, UserRow } from '../types/user'
+import type { RefreshSessionRow, UserRole, UserRow } from '@/types/user'
 
 export type CreateUserRecordInput = {
   email: string

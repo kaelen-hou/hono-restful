@@ -1,15 +1,15 @@
 import { Hono } from 'hono'
-import { requireAuth } from '../features/auth/middleware'
+import { requireAuth } from '@/features/auth/middleware'
 import {
   createTodoBodySchema,
   listTodosQuerySchema,
   patchTodoBodySchema,
   putTodoBodySchema,
   todoIdParamSchema,
-} from '../lib/schemas/todo'
-import { validate } from '../lib/validation'
-import type { AppEnv } from '../types/env'
-import type { PatchTodoInput } from '../types/todo'
+} from '@/lib/schemas/todo'
+import { validate } from '@/lib/validation'
+import type { AppEnv } from '@/types/env'
+import type { PatchTodoInput } from '@/types/todo'
 
 export const todoRoutes = new Hono<AppEnv>()
 

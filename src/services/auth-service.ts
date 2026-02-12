@@ -1,9 +1,9 @@
-import { createTokenPair, verifyRefreshToken } from '../features/auth/token'
-import { ApiError } from '../lib/errors'
-import { logAudit } from '../lib/logger'
-import { hashPassword, verifyPassword } from '../lib/password'
-import type { UserRepository } from '../repositories/user-repository'
-import type { AuthTokens, LoginInput, RegisterInput, User, UserRow } from '../types/user'
+import { createTokenPair, verifyRefreshToken } from '@/features/auth/token'
+import { ApiError } from '@/lib/errors'
+import { logAudit } from '@/lib/logger'
+import { hashPassword, verifyPassword } from '@/lib/password'
+import type { UserRepository } from '@/repositories/user-repository'
+import type { AuthTokens, LoginInput, RegisterInput, User, UserRow } from '@/types/user'
 
 const toUser = (row: UserRow): User => ({
   id: row.id,

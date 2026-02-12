@@ -10,7 +10,10 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "moduleResolution": "bundler",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }
