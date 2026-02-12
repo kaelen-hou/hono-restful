@@ -10,6 +10,7 @@ export const todoIdParamSchema = z.object({
 export const listTodosQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT),
   offset: z.coerce.number().int().min(0).default(0),
+  userId: z.coerce.number().int().positive().optional(),
 })
 
 const titleSchema = z.string().trim().min(1, 'title cannot be empty')

@@ -45,6 +45,7 @@ npm run dev
 ```
 
 默认 `DB_DRIVER=d1`，线上默认 `APP_ENV=production`（见 `wrangler.toml`）。
+请把 `JWT_SECRET` 改为一个高强度随机字符串。
 
 ## 5. 部署到 Cloudflare
 
@@ -65,12 +66,36 @@ npm run deploy
 - `GET /` 服务状态
 - `GET /health` liveness（进程存活）
 - `GET /ready` readiness（检查依赖可用）
-- `GET /todos?limit=20&offset=0` 获取分页 to-do
-- `GET /todos/:id` 获取单个 to-do
-- `POST /todos` 创建 to-do
-- `PUT /todos/:id` 全量替换（需要 `title` 和 `completed`）
-- `PATCH /todos/:id` 部分更新
-- `DELETE /todos/:id` 删除 to-do
+- `POST /auth/register` 邮箱+密码注册
+- `POST /auth/login` 邮箱+密码登录
+- `GET /auth/me` 获取当前登录用户
+- `GET /todos?limit=20&offset=0` 获取分页 to-do（需登录）
+- `GET /todos/:id` 获取单个 to-do（需登录）
+- `POST /todos` 创建 to-do（需登录）
+- `PUT /todos/:id` 全量替换（需登录）
+- `PATCH /todos/:id` 部分更新（需登录）
+- `DELETE /todos/:id` 删除 to-do（需登录）
+
+所有 `/todos` 路由都需要 `Authorization: Bearer <token>`。
+普通用户只能访问自己的 todo，`admin` 可访问全部（并可通过 `GET /todos?userId=...` 指定用户）。
+
+## 认证示例
+
+注册：
+
+```bash
+curl -X POST http://127.0.0.1:8787/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"demo@example.com","password":"Password123!"}'
+```
+
+登录：
+
+```bash
+curl -X POST http://127.0.0.1:8787/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"demo@example.com","password":"Password123!"}'
+```
 
 ## 响应格式
 
@@ -113,9 +138,18 @@ src/
   lib/
     errors.ts                    # 统一业务错误模型（status/code/message）
     validation.ts                # zod 校验中间件封装
+    auth.ts                      # JWT 签发与校验
+    auth-middleware.ts           # 鉴权中间件
+    password.ts                  # 密码 hash/verify
     schemas/
+      auth.ts                    # auth 请求 schema
       todo.ts                    # 请求参数 schema
   repositories/
+    user-repository.ts           # 用户仓库接口
+    user-repository-d1.ts        # 用户 D1 实现
+    user-repository-memory.ts    # 用户 Memory 实现
+    user-repository-factory.ts   # 用户仓库工厂
+    memory-store.ts              # Memory 共享存储
     todo-repository.ts           # 仓库接口
     todo-repository-d1.ts        # Drizzle + D1 实现
     todo-repository-memory.ts    # Memory 实现
@@ -124,11 +158,14 @@ src/
     client.ts                    # Drizzle D1 client
     schema.ts                    # Drizzle schema
   routes/
+    auth-routes.ts               # /auth 路由
     system-routes.ts             # / /health /ready
     todo-routes.ts               # /todos REST 路由
   services/
+    auth-service.ts              # 认证业务
     todo-service.ts              # 业务逻辑层
   types/
     env.ts                       # Cloudflare bindings + request variables
     todo.ts                      # Todo 领域与 DTO 类型
+    user.ts                      # 用户领域类型
 ```

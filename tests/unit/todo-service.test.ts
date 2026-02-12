@@ -2,12 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '../../src/lib/errors'
 import type { TodoRepository } from '../../src/repositories/todo-repository'
 import { createTodoService } from '../../src/services/todo-service'
+import type { AuthUser } from '../../src/types/user'
+
+const normalUser: AuthUser = {
+  id: 1,
+  email: 'user@example.com',
+  role: 'user',
+}
 
 const createRepositoryStub = (): TodoRepository => ({
   list: async () => ({
     items: [
       {
         id: 1,
+        user_id: 1,
         title: 'first',
         completed: 0,
         created_at: '2026-01-01',
@@ -20,6 +28,7 @@ const createRepositoryStub = (): TodoRepository => ({
     id === 1
       ? {
           id: 1,
+          user_id: 1,
           title: 'first',
           completed: 0,
           created_at: '2026-01-01',
@@ -35,15 +44,15 @@ const createRepositoryStub = (): TodoRepository => ({
 describe('todo-service', () => {
   it('listTodos should return page + mapped items', async () => {
     const service = createTodoService(createRepositoryStub())
-    const result = await service.listTodos({ limit: 20, offset: 0 })
+    const result = await service.listTodos({ limit: 20, offset: 0 }, normalUser)
 
     expect(result.page.total).toBe(1)
-    expect(result.items[0]).toMatchObject({ id: 1, completed: false })
+    expect(result.items[0]).toMatchObject({ id: 1, userId: 1, completed: false })
   })
 
   it('getTodoById should throw NOT_FOUND when missing', async () => {
     const service = createTodoService(createRepositoryStub())
-    await expect(service.getTodoById(99)).rejects.toBeInstanceOf(ApiError)
+    await expect(service.getTodoById(99, normalUser)).rejects.toBeInstanceOf(ApiError)
   })
 
   it('checkReady should throw when repository ping fails', async () => {

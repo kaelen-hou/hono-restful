@@ -12,10 +12,10 @@ export type TodoListRows = {
 }
 
 export interface TodoRepository {
-  list(query: ListTodosQuery): Promise<TodoListRows>
-  findById(id: number): Promise<TodoRow | null>
-  create(input: CreateTodoInput): Promise<number | null>
-  update(id: number, input: PutTodoInput | PatchTodoInput): Promise<number>
-  remove(id: number): Promise<number>
+  list(query: ListTodosQuery, scopeUserId?: number): Promise<TodoListRows>
+  findById(id: number, scopeUserId?: number): Promise<TodoRow | null>
+  create(input: CreateTodoInput, userId: number): Promise<number | null>
+  update(id: number, input: PutTodoInput | PatchTodoInput, scopeUserId?: number): Promise<number>
+  remove(id: number, scopeUserId?: number): Promise<number>
   ping(): Promise<void>
 }

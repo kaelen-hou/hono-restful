@@ -5,25 +5,21 @@ import type {
   PutTodoInput,
   TodoRow,
 } from '../types/todo'
+import { getMemoryDbStore } from './memory-store'
 import type { TodoListRows, TodoRepository } from './todo-repository'
-
-export type MemoryStore = {
-  rows: TodoRow[]
-  nextId: number
-}
-
-export const createMemoryStore = (): MemoryStore => ({
-  rows: [],
-  nextId: 1,
-})
 
 const now = () => new Date().toISOString()
 
-export const createMemoryTodoRepository = (
-  store: MemoryStore = createMemoryStore(),
-): TodoRepository => {
-  const list = async (query: ListTodosQuery): Promise<TodoListRows> => {
-    const sorted = [...store.rows].sort((a, b) => b.id - a.id)
+export const createMemoryTodoRepository = (): TodoRepository => {
+  const store = getMemoryDbStore()
+
+  const list = async (query: ListTodosQuery, scopeUserId?: number): Promise<TodoListRows> => {
+    const filtered =
+      scopeUserId === undefined
+        ? store.todos
+        : store.todos.filter((item) => item.user_id === scopeUserId)
+
+    const sorted = [...filtered].sort((a, b) => b.id - a.id)
     const items = sorted.slice(query.offset, query.offset + query.limit)
 
     return {
@@ -32,30 +28,42 @@ export const createMemoryTodoRepository = (
     }
   }
 
-  const findById = async (id: number): Promise<TodoRow | null> => {
-    const row = store.rows.find((item) => item.id === id)
-    return row ?? null
+  const findById = async (id: number, scopeUserId?: number): Promise<TodoRow | null> => {
+    const row = store.todos.find((item) => item.id === id)
+    if (!row) {
+      return null
+    }
+
+    if (scopeUserId !== undefined && row.user_id !== scopeUserId) {
+      return null
+    }
+
+    return row
   }
 
-  const create = async (input: CreateTodoInput): Promise<number | null> => {
-    const id = store.nextId
-    store.nextId += 1
+  const create = async (input: CreateTodoInput, userId: number): Promise<number | null> => {
+    const id = store.nextTodoId
+    store.nextTodoId += 1
 
     const timestamp = now()
-    const row: TodoRow = {
+    store.todos.push({
       id,
+      user_id: userId,
       title: input.title,
       completed: input.completed ? 1 : 0,
       created_at: timestamp,
       updated_at: timestamp,
-    }
+    })
 
-    store.rows.push(row)
     return id
   }
 
-  const update = async (id: number, input: PutTodoInput | PatchTodoInput): Promise<number> => {
-    const row = store.rows.find((item) => item.id === id)
+  const update = async (
+    id: number,
+    input: PutTodoInput | PatchTodoInput,
+    scopeUserId?: number,
+  ): Promise<number> => {
+    const row = await findById(id, scopeUserId)
     if (!row) {
       return 0
     }
@@ -72,13 +80,18 @@ export const createMemoryTodoRepository = (
     return 1
   }
 
-  const remove = async (id: number): Promise<number> => {
-    const index = store.rows.findIndex((item) => item.id === id)
+  const remove = async (id: number, scopeUserId?: number): Promise<number> => {
+    const row = await findById(id, scopeUserId)
+    if (!row) {
+      return 0
+    }
+
+    const index = store.todos.findIndex((item) => item.id === row.id)
     if (index === -1) {
       return 0
     }
 
-    store.rows.splice(index, 1)
+    store.todos.splice(index, 1)
     return 1
   }
 

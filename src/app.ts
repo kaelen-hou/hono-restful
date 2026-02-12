@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { ApiError } from './lib/errors'
+import { authRoutes } from './routes/auth-routes'
 import { systemRoutes } from './routes/system-routes'
 import { todoRoutes } from './routes/todo-routes'
 import type { AppEnv } from './types/env'
@@ -31,6 +32,7 @@ export const createApp = () => {
   })
 
   app.route('/', systemRoutes)
+  app.route('/', authRoutes)
   app.route('/', todoRoutes)
 
   app.notFound((c) =>
