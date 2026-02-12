@@ -1,0 +1,9 @@
+name = "hono-restful"
+main = "src/index.ts"
+compatibility_date = "2026-02-12"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "todo-db"
+database_id = "2346c681-1380-4b2e-9de2-4fc08b97340d"
+migrations_dir = "migrations"
