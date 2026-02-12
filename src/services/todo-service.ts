@@ -1,6 +1,14 @@
 import { ApiError } from '../lib/errors'
 import type { TodoRepository } from '../repositories/todo-repository'
-import type { CreateTodoInput, Todo, TodoRow, UpdateTodoInput } from '../types/todo'
+import type {
+  CreateTodoInput,
+  ListTodosQuery,
+  ListTodosResult,
+  PatchTodoInput,
+  PutTodoInput,
+  Todo,
+  TodoRow,
+} from '../types/todo'
 
 const toTodo = (row: TodoRow): Todo => ({
   id: row.id,
@@ -11,15 +19,23 @@ const toTodo = (row: TodoRow): Todo => ({
 })
 
 export const createTodoService = (repository: TodoRepository) => {
-  const listTodos = async (): Promise<Todo[]> => {
-    const rows = await repository.list()
-    return rows.map(toTodo)
+  const listTodos = async (query: ListTodosQuery): Promise<ListTodosResult> => {
+    const rows = await repository.list(query)
+
+    return {
+      items: rows.items.map(toTodo),
+      page: {
+        limit: query.limit,
+        offset: query.offset,
+        total: rows.total,
+      },
+    }
   }
 
   const getTodoById = async (id: number): Promise<Todo> => {
     const row = await repository.findById(id)
     if (!row) {
-      throw new ApiError(404, 'todo not found')
+      throw new ApiError(404, 'NOT_FOUND', 'todo not found')
     }
 
     return toTodo(row)
@@ -28,26 +44,40 @@ export const createTodoService = (repository: TodoRepository) => {
   const createTodo = async (input: CreateTodoInput): Promise<Todo> => {
     const id = await repository.create(input)
     if (!id) {
-      throw new ApiError(500, 'failed to create todo')
+      throw new ApiError(500, 'INTERNAL_ERROR', 'failed to create todo')
     }
 
     const row = await repository.findById(id)
     if (!row) {
-      throw new ApiError(500, 'failed to fetch created todo')
+      throw new ApiError(500, 'INTERNAL_ERROR', 'failed to fetch created todo')
     }
 
     return toTodo(row)
   }
 
-  const updateTodo = async (id: number, input: UpdateTodoInput): Promise<Todo> => {
+  const replaceTodo = async (id: number, input: PutTodoInput): Promise<Todo> => {
     const changes = await repository.update(id, input)
     if (changes === 0) {
-      throw new ApiError(404, 'todo not found')
+      throw new ApiError(404, 'NOT_FOUND', 'todo not found')
     }
 
     const row = await repository.findById(id)
     if (!row) {
-      throw new ApiError(500, 'failed to fetch updated todo')
+      throw new ApiError(500, 'INTERNAL_ERROR', 'failed to fetch updated todo')
+    }
+
+    return toTodo(row)
+  }
+
+  const patchTodo = async (id: number, input: PatchTodoInput): Promise<Todo> => {
+    const changes = await repository.update(id, input)
+    if (changes === 0) {
+      throw new ApiError(404, 'NOT_FOUND', 'todo not found')
+    }
+
+    const row = await repository.findById(id)
+    if (!row) {
+      throw new ApiError(500, 'INTERNAL_ERROR', 'failed to fetch updated todo')
     }
 
     return toTodo(row)
@@ -56,7 +86,15 @@ export const createTodoService = (repository: TodoRepository) => {
   const deleteTodo = async (id: number): Promise<void> => {
     const changes = await repository.remove(id)
     if (changes === 0) {
-      throw new ApiError(404, 'todo not found')
+      throw new ApiError(404, 'NOT_FOUND', 'todo not found')
+    }
+  }
+
+  const checkReady = async (): Promise<void> => {
+    try {
+      await repository.ping()
+    } catch {
+      throw new ApiError(503, 'INTERNAL_ERROR', 'dependency not ready')
     }
   }
 
@@ -64,7 +102,9 @@ export const createTodoService = (repository: TodoRepository) => {
     listTodos,
     getTodoById,
     createTodo,
-    updateTodo,
+    replaceTodo,
+    patchTodo,
     deleteTodo,
+    checkReady,
   }
 }

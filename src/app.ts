@@ -7,18 +7,86 @@ import type { AppEnv } from './types/env'
 export const createApp = () => {
   const app = new Hono<AppEnv>()
 
+  app.use('*', async (c, next) => {
+    const start = Date.now()
+    const requestId = c.req.header('x-request-id') ?? crypto.randomUUID()
+    c.set('requestId', requestId)
+
+    await next()
+
+    const durationMs = Date.now() - start
+    c.header('x-request-id', requestId)
+
+    console.log(
+      JSON.stringify({
+        level: 'info',
+        type: 'request',
+        requestId,
+        method: c.req.method,
+        path: new URL(c.req.url).pathname,
+        status: c.res.status,
+        durationMs,
+      }),
+    )
+  })
+
   app.route('/', systemRoutes)
   app.route('/', todoRoutes)
 
-  app.notFound((c) => c.json({ error: 'not found' }, 404))
+  app.notFound((c) =>
+    c.json(
+      {
+        code: 'NOT_FOUND',
+        message: 'route not found',
+        requestId: c.get('requestId'),
+      },
+      404,
+    ),
+  )
 
   app.onError((err, c) => {
+    const requestId = c.get('requestId')
+
     if (err instanceof ApiError) {
-      return c.json({ error: err.message }, err.status)
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          type: 'api_error',
+          requestId,
+          code: err.code,
+          status: err.status,
+          message: err.message,
+        }),
+      )
+
+      return c.json(
+        {
+          code: err.code,
+          message: err.message,
+          requestId,
+        },
+        err.status,
+      )
     }
 
-    console.error(err)
-    return c.json({ error: 'internal server error' }, 500)
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        type: 'unhandled_error',
+        requestId,
+        message: err.message,
+        stack: err.stack,
+      }),
+    )
+
+    return c.json(
+      {
+        code: 'INTERNAL_ERROR',
+        message: 'internal server error',
+        requestId,
+      },
+      500,
+    )
   })
 
   return app

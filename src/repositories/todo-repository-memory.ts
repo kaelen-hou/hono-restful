@@ -1,5 +1,5 @@
-import type { CreateTodoInput, TodoRow, UpdateTodoInput } from '../types/todo'
-import type { TodoRepository } from './todo-repository'
+import type { CreateTodoInput, ListTodosQuery, PatchTodoInput, PutTodoInput, TodoRow } from '../types/todo'
+import type { TodoListRows, TodoRepository } from './todo-repository'
 
 type MemoryStore = {
   rows: TodoRow[]
@@ -14,8 +14,14 @@ const store: MemoryStore = {
 const now = () => new Date().toISOString()
 
 export const createMemoryTodoRepository = (): TodoRepository => {
-  const list = async (): Promise<TodoRow[]> => {
-    return [...store.rows].sort((a, b) => b.id - a.id)
+  const list = async (query: ListTodosQuery): Promise<TodoListRows> => {
+    const sorted = [...store.rows].sort((a, b) => b.id - a.id)
+    const items = sorted.slice(query.offset, query.offset + query.limit)
+
+    return {
+      items,
+      total: sorted.length,
+    }
   }
 
   const findById = async (id: number): Promise<TodoRow | null> => {
@@ -40,7 +46,7 @@ export const createMemoryTodoRepository = (): TodoRepository => {
     return id
   }
 
-  const update = async (id: number, input: UpdateTodoInput): Promise<number> => {
+  const update = async (id: number, input: PutTodoInput | PatchTodoInput): Promise<number> => {
     const row = store.rows.find((item) => item.id === id)
     if (!row) {
       return 0
@@ -68,11 +74,16 @@ export const createMemoryTodoRepository = (): TodoRepository => {
     return 1
   }
 
+  const ping = async (): Promise<void> => {
+    return
+  }
+
   return {
     list,
     findById,
     create,
     update,
     remove,
+    ping,
   }
 }

@@ -40,10 +40,11 @@ npm run dev
 
 ```bash
 echo "DB_DRIVER=memory" > .dev.vars
+echo "APP_ENV=development" >> .dev.vars
 npm run dev
 ```
 
-默认 `DB_DRIVER=d1`（见 `wrangler.toml`）。
+默认 `DB_DRIVER=d1`，线上默认 `APP_ENV=production`（见 `wrangler.toml`）。
 
 ## 5. 部署到 Cloudflare
 
@@ -61,64 +62,71 @@ npm run deploy
 
 ## API 路由
 
-- `GET /` 健康检查
-- `GET /health` 健康检查（含时间戳）
-- `GET /todos` 获取全部 to-do
+- `GET /` 服务状态
+- `GET /health` liveness（进程存活）
+- `GET /ready` readiness（检查依赖可用）
+- `GET /todos?limit=20&offset=0` 获取分页 to-do
 - `GET /todos/:id` 获取单个 to-do
 - `POST /todos` 创建 to-do
-- `PUT /todos/:id` 更新 to-do（支持更新 `title` 和/或 `completed`）
+- `PUT /todos/:id` 全量替换（需要 `title` 和 `completed`）
+- `PATCH /todos/:id` 部分更新
 - `DELETE /todos/:id` 删除 to-do
 
-## 请求示例
+## 响应格式
 
-创建：
+`GET /todos` 返回：
 
-```bash
-curl -X POST http://127.0.0.1:8787/todos \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"学习 Hono", "completed": false}'
+```json
+{
+  "items": [],
+  "page": {
+    "limit": 20,
+    "offset": 0,
+    "total": 0
+  }
+}
 ```
 
-更新：
+错误响应统一为：
 
-```bash
-curl -X PUT http://127.0.0.1:8787/todos/1 \
-  -H 'Content-Type: application/json' \
-  -d '{"completed": true}'
+```json
+{
+  "code": "BAD_REQUEST",
+  "message": "...",
+  "requestId": "..."
+}
 ```
+
+## 观测与稳定性
+
+- 所有请求会输出结构化日志（包含 method/path/status/duration/requestId）
+- 每个响应包含 `x-request-id`
+- `memory` 驱动在 `staging/production` 环境会被禁止，避免误配置
+- `GET /todos` 强制分页与最大限制（limit 最大 100）
 
 ## 工程结构
 
 ```text
 src/
-  app.ts                  # 应用装配与全局错误处理
-  index.ts                # Workers 入口
+  app.ts                         # 应用装配、日志与统一错误处理
+  index.ts                       # Workers 入口
   lib/
-    errors.ts             # 统一业务错误
-    validators.ts         # 请求参数校验
+    errors.ts                    # 统一业务错误模型（status/code/message）
+    validators.ts                # 请求参数校验
   repositories/
-    todo-repository.ts            # 仓库接口
-    todo-repository-d1.ts         # Drizzle + D1 实现
-    todo-repository-memory.ts     # Memory 实现
-    todo-repository-factory.ts    # 根据环境选择实现
+    todo-repository.ts           # 仓库接口
+    todo-repository-d1.ts        # Drizzle + D1 实现
+    todo-repository-memory.ts    # Memory 实现
+    todo-repository-factory.ts   # 根据环境选择实现
   db/
-    client.ts               # Drizzle D1 client
-    schema.ts               # Drizzle schema
+    client.ts                    # Drizzle D1 client
+    schema.ts                    # Drizzle schema
   routes/
-    system-routes.ts      # / 与 /health
-    todo-routes.ts        # /todos REST 路由
+    system-routes.ts             # / /health /ready
+    todo-routes.ts               # /todos REST 路由
   services/
-    todo-service.ts       # 业务逻辑层
+    todo-service.ts              # 业务逻辑层
   types/
-    env.ts                # Cloudflare bindings 类型
-    todo.ts               # Todo 领域与 DTO 类型
+    env.ts                       # Cloudflare bindings + request variables
+    todo.ts                      # Todo 领域与 DTO 类型
 ```
-
-## DB 实现方案
-
-- `d1`（默认，生产建议）：基于 Drizzle + D1，持久化存储，适合线上环境。
-- `memory`（开发/测试）：进程内存存储，重启后数据丢失。
-
-切换方式：
-- Cloudflare（线上）：在 `wrangler.toml` 的 `[vars]` 中设置 `DB_DRIVER`
-- 本地开发：在 `.dev.vars` 中设置 `DB_DRIVER=memory` 或 `DB_DRIVER=d1`

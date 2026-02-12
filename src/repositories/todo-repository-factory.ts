@@ -4,15 +4,21 @@ import { createD1TodoRepository } from './todo-repository-d1'
 import { createMemoryTodoRepository } from './todo-repository-memory'
 import type { TodoRepository } from './todo-repository'
 
+const isProductionLike = (env?: string): boolean => env === 'production' || env === 'staging'
+
 export const createTodoRepositoryFromEnv = (bindings: Bindings): TodoRepository => {
   const driver = bindings.DB_DRIVER ?? 'd1'
 
   if (driver === 'memory') {
+    if (isProductionLike(bindings.APP_ENV)) {
+      throw new ApiError(500, 'CONFIG_ERROR', 'memory db driver is forbidden outside development')
+    }
+
     return createMemoryTodoRepository()
   }
 
   if (!bindings.DB) {
-    throw new ApiError(500, 'D1 binding is required when DB_DRIVER=d1')
+    throw new ApiError(500, 'CONFIG_ERROR', 'D1 binding is required when DB_DRIVER=d1')
   }
 
   return createD1TodoRepository(bindings.DB)

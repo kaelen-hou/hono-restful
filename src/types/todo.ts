@@ -19,7 +19,26 @@ export type CreateTodoInput = {
   completed: boolean
 }
 
-export type UpdateTodoInput = {
+export type PatchTodoInput = {
   title?: string
   completed?: boolean
+}
+
+export type PutTodoInput = {
+  title: string
+  completed: boolean
+}
+
+export type ListTodosQuery = {
+  limit: number
+  offset: number
+}
+
+export type ListTodosResult = {
+  items: Todo[]
+  page: {
+    limit: number
+    offset: number
+    total: number
+  }
 }

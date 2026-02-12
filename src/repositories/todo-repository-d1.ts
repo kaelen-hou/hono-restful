@@ -1,8 +1,8 @@
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 import { createDb } from '../db/client'
 import { todosTable } from '../db/schema'
-import type { CreateTodoInput, TodoRow, UpdateTodoInput } from '../types/todo'
-import type { TodoRepository } from './todo-repository'
+import type { CreateTodoInput, ListTodosQuery, PatchTodoInput, PutTodoInput, TodoRow } from '../types/todo'
+import type { TodoListRows, TodoRepository } from './todo-repository'
 
 const toTodoRow = (row: typeof todosTable.$inferSelect): TodoRow => ({
   id: row.id,
@@ -15,9 +15,20 @@ const toTodoRow = (row: typeof todosTable.$inferSelect): TodoRow => ({
 export const createD1TodoRepository = (d1: D1Database): TodoRepository => {
   const db = createDb(d1)
 
-  const list = async (): Promise<TodoRow[]> => {
-    const rows = await db.select().from(todosTable).orderBy(desc(todosTable.id))
-    return rows.map(toTodoRow)
+  const list = async (query: ListTodosQuery): Promise<TodoListRows> => {
+    const rows = await db
+      .select()
+      .from(todosTable)
+      .orderBy(desc(todosTable.id))
+      .limit(query.limit)
+      .offset(query.offset)
+
+    const countRows = await db.select({ total: sql<number>`count(*)` }).from(todosTable)
+
+    return {
+      items: rows.map(toTodoRow),
+      total: countRows[0]?.total ?? 0,
+    }
   }
 
   const findById = async (id: number): Promise<TodoRow | null> => {
@@ -38,7 +49,7 @@ export const createD1TodoRepository = (d1: D1Database): TodoRepository => {
     return inserted[0]?.id ?? null
   }
 
-  const update = async (id: number, input: UpdateTodoInput): Promise<number> => {
+  const update = async (id: number, input: PutTodoInput | PatchTodoInput): Promise<number> => {
     if (input.title === undefined && input.completed === undefined) {
       return 0
     }
@@ -62,11 +73,16 @@ export const createD1TodoRepository = (d1: D1Database): TodoRepository => {
     return result.meta.changes ?? 0
   }
 
+  const ping = async (): Promise<void> => {
+    await db.select({ one: sql<number>`1` }).from(todosTable).limit(1)
+  }
+
   return {
     list,
     findById,
     create,
     update,
     remove,
+    ping,
   }
 }
