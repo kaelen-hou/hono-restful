@@ -5,6 +5,9 @@ routes = [
   { pattern = "todo.w3ctech.dev", custom_domain = true, zone_name = "w3ctech.dev" }
 ]
 
+[vars]
+DB_DRIVER = "d1"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "todo-db"
