@@ -13,17 +13,25 @@ type AuthPayload = {
   refreshToken: string
 }
 
-const registerAndGetTokens = async (app: ReturnType<typeof createApp>): Promise<AuthPayload> => {
-  const email = `${crypto.randomUUID()}@example.com`
-  const registerRes = await app.request(
+const registerUser = async (
+  app: ReturnType<typeof createApp>,
+  email: string,
+  password = 'Password123!',
+) => {
+  return app.request(
     '/auth/register',
     {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email, password: 'Password123!' }),
+      body: JSON.stringify({ email, password }),
     },
     devEnv,
   )
+}
+
+const registerAndGetTokens = async (app: ReturnType<typeof createApp>): Promise<AuthPayload> => {
+  const email = `${crypto.randomUUID()}@example.com`
+  const registerRes = await registerUser(app, email)
 
   expect(registerRes.status).toBe(201)
   const registerBody = (await registerRes.json()) as AuthPayload
@@ -41,6 +49,16 @@ describe('app integration', () => {
 
     expect(res.status).toBe(200)
     expect(res.headers.get('x-request-id')).toBeTruthy()
+  })
+
+  it('should return service info on root route', async () => {
+    const app = createApp()
+    const res = await app.request('/', {}, devEnv)
+
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { service: string; status: string }
+    expect(body.service).toBe('todo-api')
+    expect(body.status).toBe('ok')
   })
 
   it('should reject protected route without token', async () => {
@@ -157,5 +175,161 @@ describe('app integration', () => {
     expect(res.status).toBe(500)
     const body = (await res.json()) as { code: string }
     expect(body.code).toBe('CONFIG_ERROR')
+  })
+
+  it('ready should pass in development memory mode', async () => {
+    const app = createApp()
+    const res = await app.request('/ready', {}, devEnv)
+
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { status: string; driver: string }
+    expect(body.status).toBe('ready')
+    expect(body.driver).toBe('memory')
+  })
+
+  it('should return 404 for unknown route', async () => {
+    const app = createApp()
+    const { accessToken } = await registerAndGetTokens(app)
+    const res = await app.request(
+      '/missing-route',
+      { headers: { authorization: `Bearer ${accessToken}` } },
+      devEnv,
+    )
+
+    expect(res.status).toBe(404)
+    const body = (await res.json()) as { code: string }
+    expect(body.code).toBe('NOT_FOUND')
+  })
+
+  it('should support auth login me and logout flow', async () => {
+    const app = createApp()
+    const email = `${crypto.randomUUID()}@example.com`
+    await registerUser(app, email)
+
+    const loginRes = await app.request(
+      '/auth/login',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, password: 'Password123!' }),
+      },
+      devEnv,
+    )
+    expect(loginRes.status).toBe(200)
+    const loginBody = (await loginRes.json()) as AuthPayload
+
+    const meRes = await app.request(
+      '/auth/me',
+      { headers: { authorization: `Bearer ${loginBody.accessToken}` } },
+      devEnv,
+    )
+    expect(meRes.status).toBe(200)
+    const meBody = (await meRes.json()) as { user: { email: string } }
+    expect(meBody.user.email).toBe(email)
+
+    const logoutRes = await app.request(
+      '/auth/logout',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ refreshToken: loginBody.refreshToken }),
+      },
+      devEnv,
+    )
+    expect(logoutRes.status).toBe(204)
+
+    const refreshAfterLogout = await app.request(
+      '/auth/refresh',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ refreshToken: loginBody.refreshToken }),
+      },
+      devEnv,
+    )
+    expect(refreshAfterLogout.status).toBe(401)
+  })
+
+  it('should reject login with invalid credentials', async () => {
+    const app = createApp()
+    const email = `${crypto.randomUUID()}@example.com`
+    await registerUser(app, email)
+
+    const loginRes = await app.request(
+      '/auth/login',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, password: 'wrong-password' }),
+      },
+      devEnv,
+    )
+
+    expect(loginRes.status).toBe(401)
+    const body = (await loginRes.json()) as { code: string }
+    expect(body.code).toBe('UNAUTHORIZED')
+  })
+
+  it('should support todo crud flow', async () => {
+    const app = createApp()
+    const { accessToken } = await registerAndGetTokens(app)
+    const headers = {
+      'content-type': 'application/json',
+      authorization: `Bearer ${accessToken}`,
+    }
+
+    const createRes = await app.request(
+      '/todos',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ title: 'first task' }),
+      },
+      devEnv,
+    )
+    expect(createRes.status).toBe(201)
+    const created = (await createRes.json()) as { id: number; completed: boolean }
+    expect(created.completed).toBe(false)
+
+    const getRes = await app.request(`/todos/${created.id}`, { headers }, devEnv)
+    expect(getRes.status).toBe(200)
+
+    const patchRes = await app.request(
+      `/todos/${created.id}`,
+      {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ title: 'patched title', completed: true }),
+      },
+      devEnv,
+    )
+    expect(patchRes.status).toBe(200)
+    const patched = (await patchRes.json()) as { title: string; completed: boolean }
+    expect(patched.title).toBe('patched title')
+    expect(patched.completed).toBe(true)
+
+    const putRes = await app.request(
+      `/todos/${created.id}`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ title: 'renamed task', completed: false }),
+      },
+      devEnv,
+    )
+    expect(putRes.status).toBe(200)
+    const replaced = (await putRes.json()) as { title: string; completed: boolean }
+    expect(replaced.title).toBe('renamed task')
+    expect(replaced.completed).toBe(false)
+
+    const deleteRes = await app.request(
+      `/todos/${created.id}`,
+      { method: 'DELETE', headers },
+      devEnv,
+    )
+    expect(deleteRes.status).toBe(204)
+
+    const getDeletedRes = await app.request(`/todos/${created.id}`, { headers }, devEnv)
+    expect(getDeletedRes.status).toBe(404)
   })
 })
