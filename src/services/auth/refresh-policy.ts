@@ -26,7 +26,6 @@ export const verifyRefreshTokenOrThrow = async (
 export const assertRefreshSessionValid = async (
   userRepository: UserRepository,
   payload: VerifiedRefreshPayload,
-  incomingDeviceId: string,
 ): Promise<RefreshSessionRow> => {
   const session = await userRepository.findRefreshSessionByJti(payload.jti)
 
@@ -58,8 +57,7 @@ export const assertRefreshSessionValid = async (
   if (
     session.user_id !== payload.id ||
     session.family_id !== payload.familyId ||
-    session.device_id !== payload.deviceId ||
-    payload.deviceId !== incomingDeviceId
+    session.device_id !== payload.deviceId
   ) {
     await userRepository.revokeRefreshSessionFamily(session.family_id, 'security_event')
     logAudit('auth_refresh_failed', {

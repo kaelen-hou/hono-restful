@@ -105,9 +105,9 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
     return { ...tokens, user: toUser(user) }
   }
 
-  const refresh = async (refreshToken: string, deviceId: string): Promise<AuthTokens> => {
+  const refresh = async (refreshToken: string): Promise<AuthTokens> => {
     const payload = await verifyRefreshTokenOrThrow(refreshToken, jwtSecret, 'auth_refresh_failed')
-    await assertRefreshSessionValid(userRepository, payload, deviceId)
+    await assertRefreshSessionValid(userRepository, payload)
 
     const user = await userRepository.findById(payload.id)
     if (!user) {
@@ -135,18 +135,14 @@ export const createAuthService = (userRepository: UserRepository, jwtSecret?: st
     }
   }
 
-  const logout = async (refreshToken: string, deviceId: string): Promise<void> => {
+  const logout = async (refreshToken: string): Promise<void> => {
     const payload = await verifyRefreshTokenOrThrow(refreshToken, jwtSecret, 'auth_logout_failed')
-
-    if (payload.deviceId !== deviceId) {
-      throw new ApiError(401, 'UNAUTHORIZED', 'invalid refresh token')
-    }
 
     await userRepository.revokeRefreshSessionFamily(payload.familyId, 'logout')
     logAudit('auth_logout_success', {
       userId: payload.id,
       familyId: payload.familyId,
-      deviceId,
+      deviceId: payload.deviceId,
     })
   }
 

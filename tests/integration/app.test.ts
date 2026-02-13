@@ -197,7 +197,10 @@ describe('app integration', () => {
       '/api/v1/auth/refresh',
       {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          'x-device-id': 'different-device',
+        },
         body: JSON.stringify({ refreshToken }),
       },
       devEnv,

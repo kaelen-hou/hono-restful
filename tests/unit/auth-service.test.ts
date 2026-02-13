@@ -118,15 +118,13 @@ describe('auth-service', () => {
       },
       'test-device',
     )
-    const refreshed = await service.refresh(registered.refreshToken, 'test-device')
+    const refreshed = await service.refresh(registered.refreshToken)
 
     expect(refreshed.accessToken).toBeTruthy()
     expect(refreshed.refreshToken).toBeTruthy()
     expect(refreshed.refreshToken).not.toBe(registered.refreshToken)
 
-    await expect(service.refresh(registered.refreshToken, 'test-device')).rejects.toBeInstanceOf(
-      ApiError,
-    )
+    await expect(service.refresh(registered.refreshToken)).rejects.toBeInstanceOf(ApiError)
   })
 
   it('logout should revoke refresh token', async () => {
@@ -143,11 +141,9 @@ describe('auth-service', () => {
       },
       'test-device',
     )
-    await service.logout(registered.refreshToken, 'test-device')
+    await service.logout(registered.refreshToken)
 
-    await expect(service.refresh(registered.refreshToken, 'test-device')).rejects.toBeInstanceOf(
-      ApiError,
-    )
+    await expect(service.refresh(registered.refreshToken)).rejects.toBeInstanceOf(ApiError)
   })
 
   it('register should throw when create returns null', async () => {

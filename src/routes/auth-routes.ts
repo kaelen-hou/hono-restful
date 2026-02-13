@@ -67,7 +67,7 @@ authRoutes.post('/auth/login', validate('json', loginBodySchema), async (c) => {
 authRoutes.post('/auth/refresh', validate('json', refreshBodySchema), async (c) => {
   const authService = c.get('authService')
   const { refreshToken } = c.req.valid('json')
-  const result = await authService.refresh(refreshToken, getDeviceId(c.req.raw.headers))
+  const result = await authService.refresh(refreshToken)
 
   return c.json(result)
 })
@@ -75,7 +75,7 @@ authRoutes.post('/auth/refresh', validate('json', refreshBodySchema), async (c) 
 authRoutes.post('/auth/logout', validate('json', refreshBodySchema), async (c) => {
   const authService = c.get('authService')
   const { refreshToken } = c.req.valid('json')
-  await authService.logout(refreshToken, getDeviceId(c.req.raw.headers))
+  await authService.logout(refreshToken)
 
   return c.body(null, 204)
 })
