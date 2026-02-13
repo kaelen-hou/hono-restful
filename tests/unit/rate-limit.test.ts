@@ -84,4 +84,36 @@ describe('rate-limit middleware', () => {
     const body = (await second.json()) as { message: string }
     expect(body.message).toBe('rate limit exceeded')
   })
+
+  it('should allow request again after window expires', async () => {
+    resetRateLimitStore()
+    const app = new Hono<AppEnv>()
+    app.use(
+      '/limited',
+      createRateLimitMiddleware({
+        namespace: 'unit_window_reset',
+        max: 1,
+        windowMs: 10,
+      }),
+    )
+    app.get('/limited', (c) => c.json({ ok: true }))
+    app.onError((err, c) =>
+      c.json(
+        {
+          message: err.message,
+        },
+        429,
+      ),
+    )
+
+    const headers = { 'x-forwarded-for': '198.51.100.10' }
+    const first = await app.request('/limited', { headers }, env)
+    const second = await app.request('/limited', { headers }, env)
+    await new Promise((resolve) => setTimeout(resolve, 15))
+    const third = await app.request('/limited', { headers }, env)
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(429)
+    expect(third.status).toBe(200)
+  })
 })

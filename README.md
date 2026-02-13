@@ -91,6 +91,7 @@ npm run deploy
 所有 `/api/v1/todos` 路由都需要 `Authorization: Bearer <token>`。
 普通用户只能访问自己的 todo，`admin` 可访问全部（并可通过 `GET /api/v1/todos?userId=...` 指定用户）。
 `/api/v1/auth/login` 与 `/api/v1/auth/refresh` 启用了基础限流，超限会返回 `429 TOO_MANY_REQUESTS`。
+当前实现基于 Worker isolate 内存，仅作为 best-effort 防护；生产环境建议使用 Cloudflare Rate Limiting 或 Durable Objects 做强一致限流。
 refresh token 采用“家族旋转”机制，并记录设备会话（可通过 `x-device-id` 传递设备标识；未传时回退到 `user-agent`）。
 
 ## 认证示例
