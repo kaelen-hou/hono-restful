@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { createRequestServices } from './app/services'
+import { createRequestServices, type RequestServices } from './app/services'
 import { API_PREFIX } from './constants/api'
 import { ApiError } from './lib/errors'
 import { logError, logInfo } from './lib/logger'
@@ -13,6 +13,7 @@ import type { AppEnv } from './types/env'
 
 export const createApp = () => {
   const app = new Hono<AppEnv>()
+  let requestServices: RequestServices | null = null
 
   app.use('*', async (c, next) => {
     const start = Date.now()
@@ -66,9 +67,12 @@ export const createApp = () => {
   })
 
   app.use('*', async (c, next) => {
-    const services = createRequestServices(c.env)
-    c.set('authService', services.authService)
-    c.set('todoService', services.todoService)
+    if (!requestServices) {
+      requestServices = createRequestServices(c.env)
+    }
+
+    c.set('authService', requestServices.authService)
+    c.set('todoService', requestServices.todoService)
     await next()
   })
 

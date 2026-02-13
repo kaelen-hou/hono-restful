@@ -8,6 +8,7 @@ export type ApiErrorCode =
   | 'CONFLICT'
   | 'TOO_MANY_REQUESTS'
   | 'CONFIG_ERROR'
+  | 'SERVICE_UNAVAILABLE'
   | 'INTERNAL_ERROR'
 
 export class ApiError extends Error {

@@ -115,6 +115,9 @@ describe('todo-service', () => {
     }
 
     const service = createTodoService(repo)
-    await expect(service.checkReady()).rejects.toBeInstanceOf(ApiError)
+    await expect(service.checkReady()).rejects.toMatchObject({
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+    })
   })
 })

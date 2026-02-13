@@ -114,7 +114,7 @@ export const createTodoService = (repository: TodoRepository) => {
     try {
       await repository.ping()
     } catch {
-      throw new ApiError(503, 'INTERNAL_ERROR', 'dependency not ready')
+      throw new ApiError(503, 'SERVICE_UNAVAILABLE', 'dependency not ready')
     }
   }
 
