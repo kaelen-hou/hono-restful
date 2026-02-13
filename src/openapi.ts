@@ -1,4 +1,7 @@
+import { z } from 'zod'
 import { API_PREFIX } from '@/constants/api'
+import { loginBodySchema, refreshBodySchema, registerBodySchema } from '@/features/auth/schemas'
+import { createTodoBodySchema, patchTodoBodySchema, putTodoBodySchema } from '@/lib/schemas/todo'
 
 type OpenApiDocument = {
   openapi: '3.1.0'
@@ -64,6 +67,25 @@ const schemas = {
     required: ['id', 'userId', 'title', 'completed', 'createdAt', 'updatedAt'],
   },
 }
+
+const toOpenApiSchema = (schema: z.ZodType): Record<string, unknown> => {
+  const jsonSchema = z.toJSONSchema(schema, {
+    target: 'openapi-3.0',
+    io: 'input',
+    unrepresentable: 'any',
+  }) as Record<string, unknown>
+  // The internal "~standard" metadata is not part of OpenAPI schema object.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { '~standard': _standard, ...openApiSchema } = jsonSchema
+  return openApiSchema
+}
+
+const registerBodyOpenApiSchema = toOpenApiSchema(registerBodySchema)
+const loginBodyOpenApiSchema = toOpenApiSchema(loginBodySchema)
+const refreshBodyOpenApiSchema = toOpenApiSchema(refreshBodySchema)
+const createTodoBodyOpenApiSchema = toOpenApiSchema(createTodoBodySchema)
+const putTodoBodyOpenApiSchema = toOpenApiSchema(putTodoBodySchema)
+const patchTodoBodyOpenApiSchema = toOpenApiSchema(patchTodoBodySchema)
 
 const pathItemWithError = (item: Record<string, unknown>): Record<string, unknown> => {
   return {
@@ -166,14 +188,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
             required: true,
             content: {
               'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    email: { type: 'string', format: 'email' },
-                    password: { type: 'string' },
-                  },
-                  required: ['email', 'password'],
-                },
+                schema: registerBodyOpenApiSchema,
               },
             },
           },
@@ -214,14 +229,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
             required: true,
             content: {
               'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    email: { type: 'string', format: 'email' },
-                    password: { type: 'string' },
-                  },
-                  required: ['email', 'password'],
-                },
+                schema: loginBodyOpenApiSchema,
               },
             },
           },
@@ -254,11 +262,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
             required: true,
             content: {
               'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: { refreshToken: { type: 'string' } },
-                  required: ['refreshToken'],
-                },
+                schema: refreshBodyOpenApiSchema,
               },
             },
           },
@@ -282,11 +286,7 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
             required: true,
             content: {
               'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: { refreshToken: { type: 'string' } },
-                  required: ['refreshToken'],
-                },
+                schema: refreshBodyOpenApiSchema,
               },
             },
           },
@@ -331,6 +331,14 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           tags: ['todo'],
           summary: 'Create todo',
           security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: createTodoBodyOpenApiSchema,
+              },
+            },
+          },
           responses: {
             201: {
               description: 'Created',
@@ -371,6 +379,14 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           tags: ['todo'],
           summary: 'Replace todo',
           security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: putTodoBodyOpenApiSchema,
+              },
+            },
+          },
           responses: {
             200: {
               description: 'OK',
@@ -386,6 +402,14 @@ export const createOpenApiDocument = (requestUrl: string): OpenApiDocument => {
           tags: ['todo'],
           summary: 'Patch todo',
           security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: patchTodoBodyOpenApiSchema,
+              },
+            },
+          },
           responses: {
             200: {
               description: 'OK',
