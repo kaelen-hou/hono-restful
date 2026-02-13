@@ -8,7 +8,6 @@ routes = [
 [vars]
 DB_DRIVER = "d1"
 APP_ENV = "production"
-JWT_SECRET = "L8fwxr1rLjAtc1hQzHgquWYssHcUrybY4ivoc5ZEQdo="
 
 [[d1_databases]]
 binding = "DB"

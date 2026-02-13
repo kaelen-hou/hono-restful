@@ -45,7 +45,13 @@ npm run dev
 ```
 
 默认 `DB_DRIVER=d1`，线上默认 `APP_ENV=production`（见 `wrangler.toml`）。
-请把 `JWT_SECRET` 改为一个高强度随机字符串。
+本地开发可在 `.dev.vars` 中设置 `JWT_SECRET`。线上请使用 Wrangler Secret 管理：
+
+```bash
+npx wrangler secret put JWT_SECRET
+```
+
+执行命令后按提示输入高强度随机字符串（长度至少 16）。
 运行时会做环境配置校验（fail-fast）：
 - `JWT_SECRET` 长度必须 >= 16
 - `DB_DRIVER=d1` 时必须提供 `DB` 绑定
