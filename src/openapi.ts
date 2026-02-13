@@ -38,6 +38,15 @@ const authTokensResponseSchema = z.object({
   refreshToken: z.string(),
 })
 
+const todoResponseSchema = z.object({
+  id: z.number().int().positive(),
+  userId: z.number().int().positive(),
+  title: z.string(),
+  completed: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
 function toOpenApiSchema(
   schema: z.ZodType,
   io: 'input' | 'output' = 'input',
@@ -65,18 +74,7 @@ const schemas = {
   },
   User: toOpenApiSchema(userResponseSchema, 'output'),
   AuthTokens: toOpenApiSchema(authTokensResponseSchema, 'output'),
-  Todo: {
-    type: 'object',
-    properties: {
-      id: { type: 'integer' },
-      userId: { type: 'integer' },
-      title: { type: 'string' },
-      completed: { type: 'boolean' },
-      createdAt: { type: 'string' },
-      updatedAt: { type: 'string' },
-    },
-    required: ['id', 'userId', 'title', 'completed', 'createdAt', 'updatedAt'],
-  },
+  Todo: toOpenApiSchema(todoResponseSchema, 'output'),
 }
 
 const registerBodyOpenApiSchema = toOpenApiSchema(registerBodySchema)
