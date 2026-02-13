@@ -25,6 +25,34 @@ type OpenApiDocument = {
   paths: Record<string, unknown>
 }
 
+const userResponseSchema = z.object({
+  id: z.number().int().positive(),
+  email: z.string().email(),
+  role: z.enum(['admin', 'user']),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+const authTokensResponseSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+})
+
+function toOpenApiSchema(
+  schema: z.ZodType,
+  io: 'input' | 'output' = 'input',
+): Record<string, unknown> {
+  const jsonSchema = z.toJSONSchema(schema, {
+    target: 'openapi-3.0',
+    io,
+    unrepresentable: 'any',
+  }) as Record<string, unknown>
+  // The internal "~standard" metadata is not part of OpenAPI schema object.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { '~standard': _standard, ...openApiSchema } = jsonSchema
+  return openApiSchema
+}
+
 const schemas = {
   ErrorResponse: {
     type: 'object',
@@ -35,25 +63,8 @@ const schemas = {
     },
     required: ['code', 'message', 'requestId'],
   },
-  User: {
-    type: 'object',
-    properties: {
-      id: { type: 'integer' },
-      email: { type: 'string', format: 'email' },
-      role: { type: 'string', enum: ['admin', 'user'] },
-      createdAt: { type: 'string' },
-      updatedAt: { type: 'string' },
-    },
-    required: ['id', 'email', 'role'],
-  },
-  AuthTokens: {
-    type: 'object',
-    properties: {
-      accessToken: { type: 'string' },
-      refreshToken: { type: 'string' },
-    },
-    required: ['accessToken', 'refreshToken'],
-  },
+  User: toOpenApiSchema(userResponseSchema, 'output'),
+  AuthTokens: toOpenApiSchema(authTokensResponseSchema, 'output'),
   Todo: {
     type: 'object',
     properties: {
@@ -66,18 +77,6 @@ const schemas = {
     },
     required: ['id', 'userId', 'title', 'completed', 'createdAt', 'updatedAt'],
   },
-}
-
-const toOpenApiSchema = (schema: z.ZodType): Record<string, unknown> => {
-  const jsonSchema = z.toJSONSchema(schema, {
-    target: 'openapi-3.0',
-    io: 'input',
-    unrepresentable: 'any',
-  }) as Record<string, unknown>
-  // The internal "~standard" metadata is not part of OpenAPI schema object.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { '~standard': _standard, ...openApiSchema } = jsonSchema
-  return openApiSchema
 }
 
 const registerBodyOpenApiSchema = toOpenApiSchema(registerBodySchema)
