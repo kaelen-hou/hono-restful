@@ -7,18 +7,9 @@ import type {
   PatchTodoInput,
   PutTodoInput,
   Todo,
-  TodoRow,
 } from '@/types/todo'
 import type { AuthUser } from '@/types/user'
-
-const toTodo = (row: TodoRow): Todo => ({
-  id: row.id,
-  userId: row.user_id,
-  title: row.title,
-  completed: row.completed === 1,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-})
+import { toTodo } from './todo/mappers'
 
 const resolveScopeUserId = (
   currentUser: AuthUser,
@@ -36,6 +27,28 @@ const resolveScopeUserId = (
 }
 
 export const createTodoService = (repository: TodoRepository) => {
+  const resolveReadScopeUserId = (currentUser: AuthUser): number | undefined =>
+    currentUser.role === 'admin' ? undefined : currentUser.id
+
+  const updateTodoAndFetch = async (
+    id: number,
+    input: PutTodoInput | PatchTodoInput,
+    currentUser: AuthUser,
+  ): Promise<Todo> => {
+    const scopeUserId = resolveReadScopeUserId(currentUser)
+    const changes = await repository.update(id, input, scopeUserId)
+    if (changes === 0) {
+      throw new ApiError(404, 'NOT_FOUND', 'todo not found')
+    }
+
+    const row = await repository.findById(id, scopeUserId)
+    if (!row) {
+      throw new ApiError(500, 'INTERNAL_ERROR', 'failed to fetch updated todo')
+    }
+
+    return toTodo(row)
+  }
+
   const listTodos = async (
     query: ListTodosQuery,
     currentUser: AuthUser,
@@ -54,7 +67,7 @@ export const createTodoService = (repository: TodoRepository) => {
   }
 
   const getTodoById = async (id: number, currentUser: AuthUser): Promise<Todo> => {
-    const scopeUserId = currentUser.role === 'admin' ? undefined : currentUser.id
+    const scopeUserId = resolveReadScopeUserId(currentUser)
     const row = await repository.findById(id, scopeUserId)
     if (!row) {
       throw new ApiError(404, 'NOT_FOUND', 'todo not found')
@@ -81,42 +94,16 @@ export const createTodoService = (repository: TodoRepository) => {
     id: number,
     input: PutTodoInput,
     currentUser: AuthUser,
-  ): Promise<Todo> => {
-    const scopeUserId = currentUser.role === 'admin' ? undefined : currentUser.id
-    const changes = await repository.update(id, input, scopeUserId)
-    if (changes === 0) {
-      throw new ApiError(404, 'NOT_FOUND', 'todo not found')
-    }
-
-    const row = await repository.findById(id, scopeUserId)
-    if (!row) {
-      throw new ApiError(500, 'INTERNAL_ERROR', 'failed to fetch updated todo')
-    }
-
-    return toTodo(row)
-  }
+  ): Promise<Todo> => updateTodoAndFetch(id, input, currentUser)
 
   const patchTodo = async (
     id: number,
     input: PatchTodoInput,
     currentUser: AuthUser,
-  ): Promise<Todo> => {
-    const scopeUserId = currentUser.role === 'admin' ? undefined : currentUser.id
-    const changes = await repository.update(id, input, scopeUserId)
-    if (changes === 0) {
-      throw new ApiError(404, 'NOT_FOUND', 'todo not found')
-    }
-
-    const row = await repository.findById(id, scopeUserId)
-    if (!row) {
-      throw new ApiError(500, 'INTERNAL_ERROR', 'failed to fetch updated todo')
-    }
-
-    return toTodo(row)
-  }
+  ): Promise<Todo> => updateTodoAndFetch(id, input, currentUser)
 
   const deleteTodo = async (id: number, currentUser: AuthUser): Promise<void> => {
-    const scopeUserId = currentUser.role === 'admin' ? undefined : currentUser.id
+    const scopeUserId = resolveReadScopeUserId(currentUser)
     const changes = await repository.remove(id, scopeUserId)
     if (changes === 0) {
       throw new ApiError(404, 'NOT_FOUND', 'todo not found')
